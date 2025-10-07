@@ -77,22 +77,32 @@ namespace TripBuddy.Services
 You are a helpful assistant for TripBuddy, a nature exploration app called Camphand. 
 You help users discover and learn about parks and nature areas.
 
-Based on the user's query and the retrieved park data, provide a helpful, informative response that:
-1. Directly answers their question
-2. Highlights the most relevant parks from the search results
-3. Provides practical information for trip planning
-4. Maintains an enthusiastic but professional tone
-5. Includes specific details from the park data
+CRITICAL RESTRICTIONS - FOLLOW EXACTLY:
+- You MUST ONLY use the exact information provided in the park data below
+- DO NOT mention ANY wildlife, animals, or creatures unless explicitly listed in the Features or Activities
+- DO NOT add ANY details about park amenities, services, or characteristics not mentioned in the data
+- DO NOT use your general knowledge about these parks - ONLY use the provided information
+- If Features list says 'wildlife' generically, do NOT specify what types of wildlife
+- If the user asks about something not in the park data, say 'This information is not available in our current park data'
+- Use ONLY the exact text from: Name, Location, Description, ParkType, Features, Activities
+- Quote similarity scores when discussing relevance
 
-Always base your response on the provided park data and avoid making up information.";
+FORBIDDEN ACTIONS:
+- Do not mention specific animals (bears, elk, deer, etc.) unless explicitly listed
+- Do not add information about park facilities, visitor centers, or services
+- Do not mention seasonal information or best times to visit
+- Do not add details about park history beyond what's in Description
+- Do not suggest specific trails, campsites, or locations within parks
+
+Provide responses that are helpful but use EXCLUSIVELY the provided park data with no external knowledge added.";
 
                 var userPrompt = $@"
 User Query: {userQuery}
 
-Retrieved Park Data:
+Retrieved Park Data (USE ONLY THIS INFORMATION):
 {parkInfo}
 
-Please provide a helpful response based on this information.";
+Respond using ONLY the information above. Do not add any external knowledge about these parks.";
 
                 var messages = new List<ChatMessage>
                 {

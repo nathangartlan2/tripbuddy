@@ -140,19 +140,8 @@ namespace TripBuddy.Services
                     return "I couldn't find any parks matching your criteria. Could you try rephrasing your search or being more specific?";
                 }
 
-                // Create a context string from the search results
-                var context = string.Join("\n", searchResults.Take(3).Select(r =>
-                    $"Park: {r.Name}\nLocation: {r.Location}\nDescription: {r.Description}\nActivities: {string.Join(", ", r.Activities)}\nSimilarity: {r.Similarity:F3}\n"));
-
-                var prompt = $@"Based on the following park information, provide a helpful and informative response to the user's query: '{query}'
-
-Park Information:
-{context}
-
-Please provide a natural, conversational response that highlights the most relevant parks and explains why they match the user's interests. Include specific details about activities, features, and locations.";
-
-                // Use configured text generation service (OpenAI or LLAMA)
-                return await _textGenerationService.GenerateResponseAsync(prompt);
+                // Use the proper interface method that includes park data for strict prompt control
+                return await _textGenerationService.GenerateResponseAsync(query, searchResults);
             }
             catch (Exception ex)
             {
