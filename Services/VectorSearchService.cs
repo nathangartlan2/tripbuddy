@@ -3,14 +3,20 @@ using TripBuddy.Models;
 
 namespace TripBuddy.Services
 {
-    public class VectorSearchService
+    public interface IVectorSearchService
     {
-        private readonly OpenAIService _openAIService;
+        Task<SearchResponse> SearchParksAsync(SearchRequest request);
+        Task<bool> IndexParkAsync(ParkData parkData);
+    }
+
+    public class VectorSearchService : IVectorSearchService
+    {
+        private readonly IOpenAIService _openAIService;
         private readonly ITextGenerationService _textGenerationService;
         private readonly ILogger<VectorSearchService> _logger;
         private readonly List<Park> _parks;
 
-        public VectorSearchService(OpenAIService openAIService, ITextGenerationService textGenerationService, ILogger<VectorSearchService> logger)
+        public VectorSearchService(IOpenAIService openAIService, ITextGenerationService textGenerationService, ILogger<VectorSearchService> logger)
         {
             _openAIService = openAIService;
             _textGenerationService = textGenerationService;

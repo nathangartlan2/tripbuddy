@@ -9,11 +9,11 @@ namespace TripBuddy.Controllers
     [Route("api/[controller]")]
     public class SearchController : ControllerBase
     {
-        private readonly VectorSearchService _vectorSearchService;
+        private readonly IVectorSearchService _vectorSearchService;
         private readonly ILogger<SearchController> _logger;
 
         public SearchController(
-            VectorSearchService vectorSearchService,
+            IVectorSearchService vectorSearchService,
             ILogger<SearchController> logger)
         {
             _vectorSearchService = vectorSearchService;

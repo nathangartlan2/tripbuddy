@@ -92,10 +92,11 @@ builder.Services.AddScoped<ITextGenerationService>(provider =>
     }
 });
 
-// Register application services
+// Register application services with interfaces
 builder.Services.AddHttpClient<LlamaApiService>();
-builder.Services.AddScoped<VectorSearchService>();
-builder.Services.AddScoped<OpenAIService>();
+builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
+builder.Services.AddScoped<IOpenAIService, OpenAIService>();
+builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
 builder.Services.AddScoped<LlamaApiService>();
 
 // Add logging
