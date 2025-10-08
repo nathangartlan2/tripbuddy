@@ -22,6 +22,9 @@ namespace TripBuddy.Services
             _textGenerationService = textGenerationService;
             _logger = logger;
             _parks = ParksData.GetParks();
+
+            // Pre-generate embeddings at startup - fire and forget
+            _ = Task.Run(async () => await PreGenerateEmbeddingsAsync());
         }
 
         public async Task<SearchResponse> SearchParksAsync(SearchRequest request)
@@ -35,15 +38,12 @@ namespace TripBuddy.Services
 
                 _logger.LogInformation("Generated embedding for search query");
 
-                // Step 2: Ensure all parks have embeddings
-                await EnsureParksHaveEmbeddingsAsync();
-
-                // Step 3: Perform cosine similarity search
+                // Step 2: Perform cosine similarity search (embeddings are pre-cached at startup)
                 var searchResults = PerformCosineSearch(queryEmbedding, request.Limit ?? 10);
 
                 _logger.LogInformation($"Found {searchResults.Count} results from vector search");
 
-                // Step 4: Generate contextual response using LLAMA API
+                // Step 3: Generate contextual response
                 var contextualResponse = await GenerateContextualResponseAsync(request.Query, searchResults);
 
                 return new SearchResponse
@@ -61,21 +61,37 @@ namespace TripBuddy.Services
             }
         }
 
-        private async Task EnsureParksHaveEmbeddingsAsync()
+        private async Task PreGenerateEmbeddingsAsync()
         {
-            foreach (var park in _parks.Where(p => p.Embedding == null))
+            var parksNeedingEmbeddings = _parks.Where(p => p.Embedding == null).ToList();
+
+            if (!parksNeedingEmbeddings.Any())
+            {
+                _logger.LogInformation("🎯 All park embeddings already cached - ready for search!");
+                return;
+            }
+
+            _logger.LogInformation("🚀 Generating embeddings for {Count} new parks...", parksNeedingEmbeddings.Count);
+
+            var tasks = parksNeedingEmbeddings.Select(async park =>
             {
                 try
                 {
                     var combinedText = $"{park.Name} {park.Description} {string.Join(" ", park.Features)} {string.Join(" ", park.Activities)}";
                     park.Embedding = await _openAIService.GenerateEmbeddingAsync(combinedText);
-                    _logger.LogInformation($"Generated embedding for park: {park.Name}");
+                    _logger.LogInformation($"✅ Generated new embedding for: {park.Name}");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error generating embedding for park: {park.Name}");
+                    _logger.LogError(ex, $"❌ Error generating embedding for park: {park.Name}");
                 }
-            }
+            });
+
+            await Task.WhenAll(tasks);
+
+            var totalCached = _parks.Count(p => p.Embedding != null);
+            var newlyGenerated = parksNeedingEmbeddings.Count(p => p.Embedding != null);
+            _logger.LogInformation("🎉 Embedding generation complete: {New} new, {Total} total parks ready for search", newlyGenerated, totalCached);
         }
 
         private List<ParkResult> PerformCosineSearch(double[] queryEmbedding, int limit)
