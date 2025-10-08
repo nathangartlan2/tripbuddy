@@ -1,23 +1,29 @@
-# TripBuddy API
+# TripBuddy - AI-Powered Nature Discovery Platform
 
-A .NET C# Web API for the Camphand nature exploration app that provides vector search capabilities against park data stored in Supabase PostgreSQL, with AI-powered responses via OpenAI.
+A modern, AI-powered platform for discovering and exploring nature destinations using vector search and retrieval-augmented generation (RAG).
 
-## Features
+## 🏗️ **Project Structure**
 
-- **Vector Search**: Semantic search against indexed park data using PostgreSQL vector extensions
-- **AI Integration**: OpenAI-powered natural language responses based on search results
-- **Location Filtering**: Optional geographic filtering by latitude/longitude and radius
-- **RESTful API**: Clean REST endpoints with comprehensive documentation
-- **Swagger UI**: Interactive API documentation available at `/swagger`
+```
+tripbuddy/
+├── API/                    # .NET 8 Web API with vector search
+├── frontend/               # React/Vue frontend (planned)
+├── database/               # PostgreSQL + pgvector setup
+├── infrastructure/         # Docker, K8s, Terraform configs
+├── docs/                   # Project documentation
+└── scripts/                # Setup and utility scripts
+```
 
-## Prerequisites
+## 🚀 **Quick Start**
 
-- .NET 8.0 SDK
-- Supabase account with PostgreSQL database
-- OpenAI API key
-- Vector extension enabled in your Supabase database (pgvector)
+### **API Development**
 
-## Setup
+```bash
+cd API/TripBuddy.API
+dotnet restore
+dotnet build
+dotnet run --urls=http://localhost:5001
+```
 
 ### 1. Database Setup
 
