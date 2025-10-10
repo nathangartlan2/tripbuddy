@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TripBuddy - AI Gear Recommendations</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        color: #2c5530;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #333;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: #2c5530;
+        outline: none;
+      }
+
+      button {
+        background-color: #2c5530;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      button:hover {
+        background-color: #1e3a21;
+      }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .results {
+        margin-top: 30px;
+      }
+
+      .gear-category {
+        margin-bottom: 25px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 15px;
+      }
+
+      .gear-category h3 {
+        color: #2c5530;
+        margin-top: 0;
+        border-bottom: 2px solid #2c5530;
+        padding-bottom: 5px;
+      }
+
+      .gear-item {
+        margin: 8px 0;
+        padding: 8px;
+        border-radius: 4px;
+      }
+
+      .gear-item.modified {
+        background-color: #e8f5e8;
+        border-left: 4px solid #2c5530;
+      }
+
+      .gear-item.removed {
+        background-color: #ffe8e8;
+        border-left: 4px solid #cc0000;
+        text-decoration: line-through;
+        opacity: 0.7;
+      }
+
+      .gear-note {
+        font-size: 14px;
+        color: #666;
+        font-style: italic;
+        margin-top: 4px;
+      }
+
+      .summary {
+        background-color: #f0f8ff;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #007acc;
+        margin-bottom: 20px;
+      }
+
+      .warnings {
+        background-color: #fff5f5;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #ff6b6b;
+        margin-bottom: 20px;
+      }
+
+      .loading {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+      }
+
+      .error {
+        background-color: #ffe8e8;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #cc0000;
+        color: #cc0000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎒 TripBuddy - AI Gear Recommendations</h1>
+
+      <form id="gearForm">
+        <div class="form-group">
+          <label for="destination">Destination:</label>
+          <input
+            type="text"
+            id="destination"
+            name="destination"
+            placeholder="e.g., Yosemite National Park"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="season">Season:</label>
+          <select id="season" name="season" required>
+            <option value="">Select season</option>
+            <option value="spring">Spring</option>
+            <option value="summer">Summer</option>
+            <option value="fall">Fall</option>
+            <option value="winter">Winter</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="duration">Duration:</label>
+          <select id="duration" name="duration" required>
+            <option value="">Select duration</option>
+            <option value="1 day">1 day</option>
+            <option value="2-3 days">2-3 days</option>
+            <option value="4-7 days">4-7 days</option>
+            <option value="1 week+">1 week+</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="tripType">Trip Type:</label>
+          <select id="tripType" name="tripType" required>
+            <option value="">Select trip type</option>
+            <option value="day_hiking">Day Hiking</option>
+            <option value="backpacking">Backpacking</option>
+            <option value="car_camping">Car Camping</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="experienceLevel">Experience Level:</label>
+          <select id="experienceLevel" name="experienceLevel" required>
+            <option value="">Select experience</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="groupSize">Group Size:</label>
+          <input
+            type="number"
+            id="groupSize"
+            name="groupSize"
+            min="1"
+            max="20"
+            value="2"
+            required
+          />
+        </div>
+
+        <button type="submit" id="submitBtn">
+          Get AI Gear Recommendations
+        </button>
+      </form>
+
+      <div id="results" class="results" style="display: none"></div>
+    </div>
+
+    <script>
+      const API_BASE = "https://localhost:5001/api/gear";
+
+      document
+        .getElementById("gearForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const submitBtn = document.getElementById("submitBtn");
+          const resultsDiv = document.getElementById("results");
+
+          // Get form data
+          const formData = new FormData(e.target);
+          const tripContext = {
+            destination: formData.get("destination"),
+            season: formData.get("season"),
+            duration: formData.get("duration"),
+            tripType: formData.get("tripType"),
+            experienceLevel: formData.get("experienceLevel"),
+            groupSize: parseInt(formData.get("groupSize")),
+          };
+
+          // Show loading state
+          submitBtn.textContent = "Generating recommendations...";
+          submitBtn.disabled = true;
+          resultsDiv.style.display = "block";
+          resultsDiv.innerHTML =
+            '<div class="loading">🤖 AI is analyzing your trip and customizing gear recommendations...</div>';
+
+          try {
+            const response = await fetch(`${API_BASE}/recommendations`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ tripContext }),
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+
+            const data = await response.json();
+            displayResults(data);
+          } catch (error) {
+            console.error("Error:", error);
+            resultsDiv.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}<br>
+                        <small>Make sure the API server is running on https://localhost:5001</small>
+                    </div>
+                `;
+          } finally {
+            submitBtn.textContent = "Get AI Gear Recommendations";
+            submitBtn.disabled = false;
+          }
+        });
+
+      function displayResults(data) {
+        const resultsDiv = document.getElementById("results");
+        const { gearList, summary, warnings } = data;
+
+        let html = "";
+
+        // Summary
+        if (summary) {
+          html += `<div class="summary"><strong>AI Summary:</strong> ${summary}</div>`;
+        }
+
+        // Warnings
+        if (warnings && warnings.length > 0) {
+          html += `<div class="warnings"><strong>⚠️ Important Notes:</strong><ul>`;
+          warnings.forEach((warning) => {
+            html += `<li>${warning}</li>`;
+          });
+          html += `</ul></div>`;
+        }
+
+        // Group gear by category
+        const categories = {};
+        gearList.items.forEach((item) => {
+          if (!categories[item.category]) {
+            categories[item.category] = [];
+          }
+          categories[item.category].push(item);
+        });
+
+        // Display each category
+        Object.keys(categories).forEach((categoryName) => {
+          html += `<div class="gear-category">
+                    <h3>${categoryName}</h3>`;
+
+          categories[categoryName].forEach((item) => {
+            let itemClass = "";
+            let statusIcon = "";
+
+            if (item.modification) {
+              switch (item.modification.action) {
+                case "added":
+                  itemClass = "modified";
+                  statusIcon = "✅ ";
+                  break;
+                case "removed":
+                  itemClass = "removed";
+                  statusIcon = "❌ ";
+                  break;
+                case "upgraded":
+                  itemClass = "modified";
+                  statusIcon = "⬆️ ";
+                  break;
+              }
+            }
+
+            html += `<div class="gear-item ${itemClass}">
+                        ${statusIcon}${item.name}
+                        ${
+                          item.note
+                            ? `<div class="gear-note">${item.note}</div>`
+                            : ""
+                        }
+                    </div>`;
+          });
+
+          html += `</div>`;
+        });
+
+        resultsDiv.innerHTML = html;
+      }
+    </script>
+  </body>
+</html>

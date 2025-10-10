@@ -97,6 +97,7 @@ builder.Services.AddHttpClient<LlamaApiService>();
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
 builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
 builder.Services.AddScoped<LlamaApiService>();
 
