@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trip Planning Template Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- YAML Template -->
+    <script id="template-yaml" type="text/plain">
+      trip_type: backpacking
+      title: "Backpacking Trip Planner"
+
+      sections:
+        - id: basics
+          title: "Trip Basics"
+          description: "Essential information about your trip"
+          fields:
+            - name: park_name
+              type: text
+              label: "Park/Destination"
+              required: true
+              placeholder: "e.g., Yosemite National Park"
+
+            - name: duration
+              type: number
+              label: "Trip Duration (days)"
+              required: true
+              min: 1
+              max: 14
+
+            - name: group_size
+              type: number
+              label: "Group Size"
+              required: true
+              min: 1
+              max: 12
+
+            - name: season
+              type: select
+              label: "Season"
+              required: true
+              options:
+                - value: spring
+                  label: "Spring (Mar-May)"
+                - value: summer
+                  label: "Summer (Jun-Aug)"
+                - value: fall
+                  label: "Fall (Sep-Nov)"
+                - value: winter
+                  label: "Winter (Dec-Feb)"
+
+        - id: gear
+          title: "Essential Gear"
+          description: "Core equipment needed for your trip"
+          fields:
+            - name: shelter
+              type: select
+              label: "Shelter Type"
+              required: true
+              options:
+                - value: tent_3season
+                  label: "3-Season Tent"
+                - value: tent_4season
+                  label: "4-Season Tent"
+                - value: tarp
+                  label: "Tarp/Bivy"
+
+            - name: sleeping_bag
+              type: select
+              label: "Sleeping Bag Rating"
+              required: true
+              options:
+                - value: summer
+                  label: "Summer (40°F+)"
+                - value: three_season
+                  label: "3-Season (20°F)"
+                - value: winter
+                  label: "Winter (0°F or below)"
+
+            - name: cooking
+              type: checkbox
+              label: "Cooking Equipment"
+              options:
+                - value: stove
+                  label: "Backpacking stove"
+                - value: cookset
+                  label: "Lightweight cookset"
+                - value: water_filter
+                  label: "Water filter/purification"
+
+        - id: safety
+          title: "Safety & Permits"
+          description: "Important safety considerations and permits"
+          fields:
+            - name: permits_needed
+              type: checkbox
+              label: "Permits Required"
+
+            - name: emergency_contact
+              type: text
+              label: "Emergency Contact"
+              placeholder: "Name and phone number"
+
+            - name: first_aid
+              type: checkbox
+              label: "First Aid Kit"
+
+            - name: navigation
+              type: checkbox
+              label: "Navigation Tools (map, compass, GPS)"
+    </script>
+
+    <!-- React Application -->
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      // Field Renderer Component
+      function FieldRenderer({ field, value, onChange }) {
+        const handleChange = (e) => {
+          const newValue =
+            field.type === "number" ? Number(e.target.value) : e.target.value;
+          onChange(field.name, newValue);
+        };
+
+        const handleCheckboxChange = (optionValue, checked) => {
+          const currentValues = Array.isArray(value) ? value : [];
+          const newValues = checked
+            ? [...currentValues, optionValue]
+            : currentValues.filter((v) => v !== optionValue);
+          onChange(field.name, newValues);
+        };
+
+        const renderField = () => {
+          switch (field.type) {
+            case "text":
+              return (
+                <input
+                  type="text"
+                  id={field.name}
+                  value={value || ""}
+                  onChange={handleChange}
+                  placeholder={field.placeholder}
+                  required={field.required}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              );
+
+            case "number":
+              return (
+                <input
+                  type="number"
+                  id={field.name}
+                  value={value || ""}
+                  onChange={handleChange}
+                  min={field.min}
+                  max={field.max}
+                  required={field.required}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              );
+
+            case "select":
+              return (
+                <select
+                  id={field.name}
+                  value={value || ""}
+                  onChange={handleChange}
+                  required={field.required}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select an option...</option>
+                  {field.options?.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              );
+
+            case "checkbox":
+              if (field.options) {
+                // Multiple checkboxes
+                return (
+                  <div className="space-y-2">
+                    {field.options.map((option) => (
+                      <label
+                        key={option.value}
+                        className="flex items-center space-x-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            Array.isArray(value) && value.includes(option.value)
+                          }
+                          onChange={(e) =>
+                            handleCheckboxChange(option.value, e.target.checked)
+                          }
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              } else {
+                // Single checkbox
+                return (
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={field.name}
+                      checked={value || false}
+                      onChange={(e) => onChange(field.name, e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm">{field.label}</span>
+                  </label>
+                );
+              }
+
+            default:
+              return null;
+          }
+        };
+
+        return (
+          <div className="mb-4">
+            <label
+              htmlFor={field.name}
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {renderField()}
+          </div>
+        );
+      }
+
+      // Form Renderer Component
+      function FormRenderer({ template, onSubmit }) {
+        const [formData, setFormData] = useState({});
+
+        const handleFieldChange = (name, value) => {
+          setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+          }));
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          onSubmit(formData);
+        };
+
+        return (
+          <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {template.title}
+            </h1>
+            <p className="text-gray-600 mb-6">
+              Trip Type: {template.trip_type}
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {template.sections.map((section) => (
+                <div
+                  key={section.id}
+                  className="border border-gray-200 rounded-lg p-6"
+                >
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                    {section.title}
+                  </h2>
+                  {section.description && (
+                    <p className="text-gray-600 mb-4">{section.description}</p>
+                  )}
+
+                  <div className="space-y-4">
+                    {section.fields.map((field) => (
+                      <FieldRenderer
+                        key={field.name}
+                        field={field}
+                        value={formData[field.name]}
+                        onChange={handleFieldChange}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-center pt-6">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors duration-200"
+                >
+                  Generate Trip Plan
+                </button>
+              </div>
+            </form>
+
+            {/* Debug: Show current form data */}
+            <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-800 mb-2">
+                Form Data (Debug)
+              </h3>
+              <pre className="text-sm text-gray-600 overflow-auto">
+                {JSON.stringify(formData, null, 2)}
+              </pre>
+            </div>
+          </div>
+        );
+      }
+
+      // Main App Component
+      function App() {
+        const [template, setTemplate] = useState(null);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState(null);
+
+        useEffect(() => {
+          try {
+            const yamlText =
+              document.getElementById("template-yaml").textContent;
+            const parsedTemplate = jsyaml.load(yamlText);
+            setTemplate(parsedTemplate);
+            setLoading(false);
+          } catch (err) {
+            setError(`Failed to parse template: ${err.message}`);
+            setLoading(false);
+          }
+        }, []);
+
+        const handleFormSubmit = (formData) => {
+          console.log("Form submitted with data:", formData);
+
+          // Create a summary
+          const summary = [];
+          if (formData.park_name)
+            summary.push(`Destination: ${formData.park_name}`);
+          if (formData.duration)
+            summary.push(`Duration: ${formData.duration} days`);
+          if (formData.group_size)
+            summary.push(`Group size: ${formData.group_size}`);
+          if (formData.season) summary.push(`Season: ${formData.season}`);
+
+          alert(
+            `🏕️ Trip Plan Generated!\n\n${summary.join(
+              "\n"
+            )}\n\nFull details are logged to console.`
+          );
+        };
+
+        if (loading) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading template...</p>
+              </div>
+            </div>
+          );
+        }
+
+        if (error) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+                <h2 className="text-red-800 font-semibold mb-2">
+                  Error Loading Template
+                </h2>
+                <p className="text-red-600">{error}</p>
+              </div>
+            </div>
+          );
+        }
+
+        if (!template) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <p className="text-gray-600">No template found</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="min-h-screen bg-gray-50 py-8">
+            <FormRenderer template={template} onSubmit={handleFormSubmit} />
+          </div>
+        );
+      }
+
+      // Render the app
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </body>
+</html>
