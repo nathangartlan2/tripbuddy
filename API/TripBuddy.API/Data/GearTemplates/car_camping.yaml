@@ -1,0 +1,36 @@
+tripType: car_camping
+categories:
+  - name: Shelter
+    isEssential: true
+    baseItems:
+      - Tent
+      - Sleeping bag
+      - Sleeping pad or air mattress
+      - Pillow
+      - Camping chairs
+
+  - name: Cooking
+    isEssential: true
+    baseItems:
+      - Camping stove or grill
+      - Fuel
+      - Cookware and utensils
+      - Cooler and ice
+      - Water containers
+      - Plates and cups
+
+  - name: Clothing
+    isEssential: true
+    baseItems:
+      - Weather-appropriate clothing
+      - Rain gear
+      - Extra clothes
+      - Comfortable camp shoes
+
+  - name: Comfort & Entertainment
+    isEssential: false
+    baseItems:
+      - Lantern
+      - Portable table
+      - Games or books
+      - Portable speaker

@@ -3,6 +3,7 @@ using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
 using TripBuddy.API.Configuration;
+using TripBuddy.API.Data;
 using TripBuddy.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -97,6 +98,7 @@ builder.Services.AddHttpClient<LlamaApiService>();
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddSingleton<IGearTemplateService, GearTemplateService>();
 builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
 builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
 builder.Services.AddScoped<LlamaApiService>();
@@ -116,6 +118,13 @@ logger.LogInformation("   OpenAI API Key: {Status}",
 logger.LogInformation("   OpenAI Chat Model: {Model}", openAIConfig.ChatModel);
 logger.LogInformation("   OpenAI Embedding Model: {Model}", openAIConfig.EmbeddingModel);
 logger.LogInformation("   Text Generation Provider: {Provider}", textGenConfig.Provider);
+
+// Initialize gear templates at startup
+var gearTemplateService = app.Services.GetRequiredService<IGearTemplateService>();
+var availableTemplates = gearTemplateService.GetAllTemplates();
+logger.LogInformation("📋 Loaded {Count} gear templates: {Templates}", 
+    availableTemplates.Count(), 
+    string.Join(", ", availableTemplates.Select(t => t.TripType)));
 logger.LogInformation("   LLAMA API URL: {Url}", textGenConfig.Llama.ApiUrl);
 logger.LogInformation("   LLAMA Model: {Model}", textGenConfig.Llama.Model);
 

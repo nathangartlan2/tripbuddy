@@ -1,0 +1,53 @@
+tripType: backpacking
+categories:
+  - name: Shelter
+    isEssential: true
+    baseItems:
+      - Tent or tarp
+      - Sleeping bag
+      - Sleeping pad
+      - Pillow or stuff sack
+
+  - name: Cooking
+    isEssential: true
+    baseItems:
+      - Stove and fuel
+      - Cookpot
+      - Spork or utensils
+      - Water bottles
+      - Water filter or purification
+
+  - name: Clothing
+    isEssential: true
+    baseItems:
+      - Hiking boots
+      - Moisture-wicking base layer
+      - Insulating layer
+      - Rain jacket
+      - Extra socks and underwear
+      - Hat and gloves
+
+  - name: Safety & Navigation
+    isEssential: true
+    baseItems:
+      - Map and compass
+      - First aid kit
+      - Headlamp and extra batteries
+      - Emergency whistle
+      - Sunscreen and sunglasses
+
+  - name: Pack & Organization
+    isEssential: true
+    baseItems:
+      - Backpack
+      - Stuff sacks or packing cubes
+      - Trash bags
+      - Rope or paracord
+
+  - name: Personal Care
+    isEssential: false
+    baseItems:
+      - Toothbrush and toothpaste
+      - Toilet paper
+      - Trowel
+      - Personal medications

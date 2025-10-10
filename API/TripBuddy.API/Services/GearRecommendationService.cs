@@ -12,13 +12,16 @@ namespace TripBuddy.API.Services
     public class GearRecommendationService : IGearRecommendationService
     {
         private readonly ITextGenerationService _textGenerationService;
+        private readonly IGearTemplateService _gearTemplateService;
         private readonly ILogger<GearRecommendationService> _logger;
 
         public GearRecommendationService(
             ITextGenerationService textGenerationService,
+            IGearTemplateService gearTemplateService,
             ILogger<GearRecommendationService> logger)
         {
             _textGenerationService = textGenerationService;
+            _gearTemplateService = gearTemplateService;
             _logger = logger;
         }
 
@@ -27,7 +30,7 @@ namespace TripBuddy.API.Services
             try
             {
                 // Get base gear template
-                var baseTemplate = BaseGearData.GetTemplateByTripType(request.TripContext.TripType);
+                var baseTemplate = _gearTemplateService.GetTemplateByTripType(request.TripContext.TripType);
 
                 // Create AI prompt to modify gear list
                 var prompt = BuildGearModificationPrompt(baseTemplate, request.TripContext);

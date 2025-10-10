@@ -1,0 +1,27 @@
+tripType: day_hiking
+categories:
+  - name: Essentials
+    isEssential: true
+    baseItems:
+      - Day pack
+      - Water bottles
+      - Snacks and lunch
+      - Map and compass
+      - First aid kit
+      - Headlamp
+
+  - name: Clothing
+    isEssential: true
+    baseItems:
+      - Hiking boots
+      - Moisture-wicking layers
+      - Rain jacket
+      - Hat and sunglasses
+
+  - name: Optional
+    isEssential: false
+    baseItems:
+      - Trekking poles
+      - Camera
+      - Binoculars
+      - Field guides
