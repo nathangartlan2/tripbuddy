@@ -47,15 +47,25 @@ CREATE TABLE parks (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Activities available at each park (from NPS activities endpoint)
+-- Activities that exist independently (hiking, rock climbing, etc.)
+CREATE TABLE activities (
+    id SERIAL PRIMARY KEY,
+    nps_activity_id VARCHAR(50) UNIQUE, -- NPS activity ID
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    category VARCHAR(100), -- e.g., 'outdoor recreation', 'water sports', 'winter activities'
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Junction table linking parks to activities (many-to-many relationship)
 CREATE TABLE park_activities (
     id SERIAL PRIMARY KEY,
     park_id INT REFERENCES parks(id) ON DELETE CASCADE,
-    nps_activity_id VARCHAR(50), -- NPS activity ID
-    activity_name VARCHAR(255) NOT NULL,
+    activity_id INT REFERENCES activities(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
     
-    UNIQUE(park_id, nps_activity_id)
+    UNIQUE(park_id, activity_id)
 );
 
 -- Things to do at each park (from NPS thingstodo endpoint)
@@ -105,12 +115,11 @@ CREATE TABLE park_images (
 -- This table stores searchable content chunks that feed into the LLM for recommendations
 CREATE TABLE parks_documents (
     id SERIAL PRIMARY KEY,
-    park_id INT REFERENCES parks(id) ON DELETE CASCADE,
     
     -- Document content
     title VARCHAR(255),
     content TEXT NOT NULL, -- The actual searchable content
-    content_type VARCHAR(50) NOT NULL, -- 'description', 'activities', 'features', 'weather', 'directions', 'things_to_do'
+    content_type VARCHAR(50) NOT NULL, -- 'description', 'activities', 'features', 'weather', 'directions', 'things_to_do', 'comparison'
     
     -- Source tracking
     source_type VARCHAR(50), -- 'nps_api', 'manual', 'scraped'
@@ -119,7 +128,7 @@ CREATE TABLE parks_documents (
     
     -- Search and RAG optimization
     search_vector tsvector, -- PostgreSQL full-text search
-    content_hash VARCHAR(64), -- MD5 hash to detect content changes
+    content_hash VARCHAR(64) UNIQUE, -- MD5 hash to detect content changes
     
     -- Metadata for RAG context
     metadata JSONB, -- Flexible storage for additional context (season, difficulty, etc.)
@@ -128,9 +137,17 @@ CREATE TABLE parks_documents (
     -- Content management
     is_active BOOLEAN DEFAULT true, -- Allow disabling without deletion
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Junction table linking documents to parks (many-to-many relationship)
+CREATE TABLE park_document_associations (
+    id SERIAL PRIMARY KEY,
+    park_id INT REFERENCES parks(id) ON DELETE CASCADE,
+    document_id INT REFERENCES parks_documents(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
     
-    UNIQUE(park_id, content_hash) -- Prevent duplicate content
+    UNIQUE(park_id, document_id)
 );
 
 -- Note: Gear templates, categories, and items are managed as YAML files
@@ -144,8 +161,12 @@ CREATE INDEX idx_parks_location ON parks USING gin(to_tsvector('english', name |
 CREATE INDEX idx_parks_features ON parks USING gin(features);
 CREATE INDEX idx_parks_activities ON parks USING gin(activities);
 
+CREATE INDEX idx_activities_nps_id ON activities(nps_activity_id);
+CREATE INDEX idx_activities_name ON activities(name);
+CREATE INDEX idx_activities_category ON activities(category);
+
 CREATE INDEX idx_park_activities_park_id ON park_activities(park_id);
-CREATE INDEX idx_park_activities_activity_name ON park_activities(activity_name);
+CREATE INDEX idx_park_activities_activity_id ON park_activities(activity_id);
 
 CREATE INDEX idx_park_things_park_id ON park_things_to_do(park_id);
 CREATE INDEX idx_park_things_season ON park_things_to_do(season);
@@ -154,12 +175,15 @@ CREATE INDEX idx_park_things_tags ON park_things_to_do USING gin(activity_tags);
 CREATE INDEX idx_park_images_park_id ON park_images(park_id);
 CREATE INDEX idx_park_images_type ON park_images(image_type);
 
-CREATE INDEX idx_parks_documents_park_id ON parks_documents(park_id);
 CREATE INDEX idx_parks_documents_content_type ON parks_documents(content_type);
 CREATE INDEX idx_parks_documents_source_type ON parks_documents(source_type);
 CREATE INDEX idx_parks_documents_active ON parks_documents(is_active);
 CREATE INDEX idx_parks_documents_search ON parks_documents USING gin(search_vector);
 CREATE INDEX idx_parks_documents_relevance ON parks_documents(relevance_score);
+CREATE INDEX idx_parks_documents_hash ON parks_documents(content_hash);
+
+CREATE INDEX idx_park_document_associations_park_id ON park_document_associations(park_id);
+CREATE INDEX idx_park_document_associations_document_id ON park_document_associations(document_id);
 
 -- Full-text search setup for parks
 CREATE INDEX idx_parks_full_text ON parks USING gin(
