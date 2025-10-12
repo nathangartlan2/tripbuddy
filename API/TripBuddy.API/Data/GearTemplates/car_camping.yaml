@@ -1,36 +1,138 @@
 tripType: car_camping
 categories:
-  - name: Shelter
+  - name: Shelter & Camp Setup
     isEssential: true
     baseItems:
       - Tent
+      - Camp Chairs
+      - Sleeping pad
       - Sleeping bag
-      - Sleeping pad or air mattress
-      - Pillow
-      - Camping chairs
+      - Hammer
+      - Hatchet
 
-  - name: Cooking
+  - name: Tools & Repair
     isEssential: true
     baseItems:
-      - Camping stove or grill
+      - Multitool
+      - Duct tape
+      - Cord or rope
+      - Tent-pole repair sleeve
+      - Sleeping pad repair kit
+      - Compass
+
+  - name: Cooking & Kitchen
+    isEssential: true
+    baseItems:
+      - Stove
       - Fuel
-      - Cookware and utensils
-      - Cooler and ice
-      - Water containers
-      - Plates and cups
+      - Matches or lighter
+      - Cook pots
+      - Cutting board
+      - Sharp knife
+      - Wash bins
+      - Sanitizer tablets
+      - Dish soap
+      - Sponge
+      - Dish towel
+      - Olive oil
+      - Garbage bags (4x)
+      - Cooler
+      - Ice or ice packs
 
-  - name: Clothing
+  - name: Individual Gear
     isEssential: true
     baseItems:
-      - Weather-appropriate clothing
-      - Rain gear
-      - Extra clothes
-      - Comfortable camp shoes
+      - Mess kit (bowl, spork, mug or cup)
+      - Headlamp or flashlight
+      - Extra batteries
+      - Dry bag
 
-  - name: Comfort & Entertainment
+  - name: Clothing - Base
+    isEssential: true
+    baseItems:
+      - Moisture-wicking underwear
+      - Moisture-wicking T-shirts
+      - Quick-drying pants/shorts
+      - Long-sleeve shirts (for sun and bugs)
+      - Lightweight fleece or jacket
+      - Boots or shoes suited to terrain
+      - Socks (synthetic or wool)
+      - Sleepwear
+      - Sunglasses (with retainer leash)
+      - Sun hat
+      - Knit hat
+      - Gym or tennis shoes for around camp
+
+  - name: Clothing - Warm Weather
+    isEssential: false
+    weatherConditions: ["warm", "hot"]
+    baseItems:
+      - Swimsuits
+      - Water shoes
+
+  - name: Clothing - Cold Weather
+    isEssential: false
+    weatherConditions: ["cold", "winter"]
+    baseItems:
+      - Thermal long underwear top and bottom
+      - Gloves or mittens
+      - Coat
+      - Heavy fleece
+      - Fleece pants
+
+  - name: Clothing - Rain Gear
+    isEssential: false
+    weatherConditions: ["rainy", "wet"]
+    baseItems:
+      - Rain jacket
+      - Rain pants
+
+  - name: Health & Hygiene - Base
+    isEssential: true
+    baseItems:
+      - Toilet paper
+      - Hand sanitizer
+      - Toothbrush and toothpaste
+      - Personal toiletries
+      - Medications
+      - Quick-dry towel
+      - Menstrual products
+      - First aid kit
+      - Sunscreen
+      - Lip balm
+
+  - name: Health & Hygiene - Warm Weather
+    isEssential: false
+    weatherConditions: ["warm", "hot"]
+    baseItems:
+      - Bug repellent
+
+  - name: Personal Items
+    isEssential: true
+    baseItems:
+      - Credit card and/or cash
+      - ID
+      - Cell phone
+      - Campsite reservation confirmation
+
+  - name: Optional Comfort & Entertainment
     isEssential: false
     baseItems:
       - Lantern
-      - Portable table
-      - Games or books
-      - Portable speaker
+      - Binoculars
+      - Map
+      - Portable coffee maker
+      - Food storage bags
+      - Large water jugs
+      - Large plastic bins for storage
+      - Reading material
+      - Notebook and pen/pencil
+      - Cards
+      - Games
+      - Bandanas
+      - Sanitation trowel
+      - Baby wipes
+      - Brush or comb
+      - Sleep mask
+      - Earplugs
+      - Portable camp shower
