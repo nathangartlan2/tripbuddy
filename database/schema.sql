@@ -137,37 +137,6 @@ CREATE TABLE parks_documents (
 -- This keeps the system simple and allows for easy manual editing
 -- YAML files are stored in: API/TripBuddy.API/Data/GearTemplates/
 
--- User sessions for tracking gear recommendations
-CREATE TABLE user_sessions (
-    id SERIAL PRIMARY KEY,
-    session_token VARCHAR(255) UNIQUE NOT NULL,
-    user_data JSONB, -- Flexible storage for user preferences
-    
-    created_at TIMESTAMP DEFAULT NOW(),
-    expires_at TIMESTAMP DEFAULT (NOW() + INTERVAL '30 days')
-);
-
--- User gear recommendations history
-CREATE TABLE gear_recommendations (
-    id SERIAL PRIMARY KEY,
-    session_id INT REFERENCES user_sessions(id) ON DELETE CASCADE,
-    park_id INT REFERENCES parks(id),
-    
-    -- Template reference (YAML file-based)
-    gear_template_name VARCHAR(100), -- Reference to YAML file (e.g., 'backpacking', 'day_hiking')
-    
-    -- Recommendation context
-    search_query TEXT,
-    trip_duration VARCHAR(100),
-    season VARCHAR(100),
-    experience_level VARCHAR(50),
-    
-    -- Recommended gear items (denormalized from YAML)
-    recommended_items JSONB, -- Complete gear list with categories from YAML processing
-    
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
 -- Indexes for performance
 CREATE INDEX idx_parks_nps_park_code ON parks(nps_park_code);
 CREATE INDEX idx_parks_state_code ON parks(state_code);
@@ -191,14 +160,6 @@ CREATE INDEX idx_parks_documents_source_type ON parks_documents(source_type);
 CREATE INDEX idx_parks_documents_active ON parks_documents(is_active);
 CREATE INDEX idx_parks_documents_search ON parks_documents USING gin(search_vector);
 CREATE INDEX idx_parks_documents_relevance ON parks_documents(relevance_score);
-
-CREATE INDEX idx_user_sessions_token ON user_sessions(session_token);
-CREATE INDEX idx_user_sessions_expires ON user_sessions(expires_at);
-
-CREATE INDEX idx_gear_recommendations_session_id ON gear_recommendations(session_id);
-CREATE INDEX idx_gear_recommendations_park_id ON gear_recommendations(park_id);
-CREATE INDEX idx_gear_recommendations_template ON gear_recommendations(gear_template_name);
-CREATE INDEX idx_gear_recommendations_created ON gear_recommendations(created_at);
 
 -- Full-text search setup for parks
 CREATE INDEX idx_parks_full_text ON parks USING gin(
