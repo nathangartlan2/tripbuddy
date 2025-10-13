@@ -28,21 +28,11 @@ CREATE TABLE parks (
     email VARCHAR(255),
     website_url TEXT,
     
-    -- Operational information
-    operating_hours TEXT, -- Simple text version
-    hours_of_operation JSONB, -- Flexible JSON for complex schedules
-    weather_info TEXT,
-    directions_info TEXT,
-    directions_url TEXT,
-    weather_url TEXT,
-    maps_url TEXT,
-    
     -- Legacy fields (keeping for compatibility)
     park_type VARCHAR(100),
-    features TEXT[], -- Array of feature keywords
-    activities TEXT[], -- Array of activity keywords
     
     -- Metadata
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -54,6 +44,7 @@ CREATE TABLE activities (
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     category VARCHAR(100), -- e.g., 'outdoor recreation', 'water sports', 'winter activities'
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -83,6 +74,7 @@ CREATE TABLE park_things_to_do (
     fee_info TEXT,
     location_description TEXT,
     url TEXT, -- Link to more info
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     
@@ -106,6 +98,7 @@ CREATE TABLE park_images (
     width INT,
     height INT,
     
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     
     UNIQUE(park_id, nps_asset_id)
