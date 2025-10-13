@@ -21,16 +21,8 @@ erDiagram
         VARCHAR phone
         VARCHAR email
         TEXT website_url
-        TEXT operating_hours
-        JSONB hours_of_operation
-        TEXT weather_info
-        TEXT directions_info
-        TEXT directions_url
-        TEXT weather_url
-        TEXT maps_url
         VARCHAR park_type
-        TEXT features
-        TEXT activities
+        BOOLEAN is_active
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -41,6 +33,7 @@ erDiagram
         VARCHAR name
         TEXT description
         VARCHAR category
+        BOOLEAN is_active
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -66,6 +59,7 @@ erDiagram
         TEXT fee_info
         TEXT location_description
         TEXT url
+        BOOLEAN is_active
         TIMESTAMP created_at
         TIMESTAMP updated_at
     }
@@ -83,6 +77,7 @@ erDiagram
         INT file_size
         INT width
         INT height
+        BOOLEAN is_active
         TIMESTAMP created_at
     }
 
@@ -135,8 +130,7 @@ erDiagram
 
 - `idx_parks_nps_park_code` - B-tree index on `nps_park_code`
 - `idx_parks_state_code` - B-tree index on `state_code`
-- `idx_parks_features` - GIN index on `features` array
-- `idx_parks_activities` - GIN index on `activities` array
+- `idx_parks_location` - GIN full-text index on name, description, and location
 
 #### **Activities Table**
 
@@ -184,10 +178,7 @@ idx_parks_full_text - GIN index on:
     name || ' ' ||
     COALESCE(description, '') || ' ' ||
     COALESCE(full_description, '') || ' ' ||
-    COALESCE(location, '') || ' ' ||
-    COALESCE(weather_info, '') || ' ' ||
-    array_to_string(features, ' ') || ' ' ||
-    array_to_string(activities, ' ')
+    COALESCE(location, '')
   )
 ```
 

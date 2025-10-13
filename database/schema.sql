@@ -124,8 +124,8 @@ CREATE TABLE parks_documents (
     content_hash VARCHAR(64) UNIQUE, -- MD5 hash to detect content changes
     
     -- Metadata for RAG context
-    metadata JSONB, -- Flexible storage for additional context (season, difficulty, etc.)
-    relevance_score DECIMAL(3,2) DEFAULT 1.0, -- Manual relevance weighting (0.0-1.0)
+    metadata JSONB, -- Flexible storage for additional context (season, difficulty, activity relevance, etc.)
+    quality_score DECIMAL(3,2) DEFAULT 1.0, -- Editorial quality/source trust score (0.0-1.0)
     
     -- Content management
     is_active BOOLEAN DEFAULT true, -- Allow disabling without deletion
@@ -172,7 +172,7 @@ CREATE INDEX idx_parks_documents_content_type ON parks_documents(content_type);
 CREATE INDEX idx_parks_documents_source_type ON parks_documents(source_type);
 CREATE INDEX idx_parks_documents_active ON parks_documents(is_active);
 CREATE INDEX idx_parks_documents_search ON parks_documents USING gin(search_vector);
-CREATE INDEX idx_parks_documents_relevance ON parks_documents(relevance_score);
+CREATE INDEX idx_parks_documents_quality ON parks_documents(quality_score);
 CREATE INDEX idx_parks_documents_hash ON parks_documents(content_hash);
 
 CREATE INDEX idx_park_document_associations_park_id ON park_document_associations(park_id);
