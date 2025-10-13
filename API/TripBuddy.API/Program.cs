@@ -5,6 +5,8 @@ using OpenAI.Embeddings;
 using TripBuddy.API.Configuration;
 using TripBuddy.API.Data;
 using TripBuddy.API.Services;
+using TripBuddy.API.Services.Business;
+using TripBuddy.API.Services.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +105,11 @@ builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService
 builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
 builder.Services.AddScoped<LlamaApiService>();
 
+// Register Parks services (Repository Pattern)
+builder.Services.AddScoped<IParkRepository, JsonParkRepository>();
+builder.Services.AddScoped<IThingsToDoRepository, JsonThingsToDoRepository>();
+builder.Services.AddScoped<IParkService, ParkService>();
+
 // Add logging
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -122,11 +129,16 @@ logger.LogInformation("   Text Generation Provider: {Provider}", textGenConfig.P
 // Initialize gear templates at startup
 var gearTemplateService = app.Services.GetRequiredService<IGearTemplateService>();
 var availableTemplates = gearTemplateService.GetAllTemplates();
-logger.LogInformation("📋 Loaded {Count} gear templates: {Templates}", 
-    availableTemplates.Count(), 
+logger.LogInformation("📋 Loaded {Count} gear templates: {Templates}",
+    availableTemplates.Count(),
     string.Join(", ", availableTemplates.Select(t => t.TripType)));
 logger.LogInformation("   LLAMA API URL: {Url}", textGenConfig.Llama.ApiUrl);
 logger.LogInformation("   LLAMA Model: {Model}", textGenConfig.Llama.Model);
+
+// Parks services registered (logging after first successful request)
+logger.LogInformation("🏞️  Parks services registered successfully");
+logger.LogInformation("   Repository: JSON-based data access");
+logger.LogInformation("   Endpoints: /api/parks available");
 
 if (string.IsNullOrEmpty(openAIConfig.ApiKey))
 {

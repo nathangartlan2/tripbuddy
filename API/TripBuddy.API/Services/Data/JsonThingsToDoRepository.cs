@@ -4,15 +4,28 @@ using TripBuddy.API.Models.Database;
 namespace TripBuddy.API.Services.Data;
 
 /// <summary>
+/// Wrapper class for NPS API response format
+/// </summary>
+internal class NpsThingsToDoResponse<T>
+{
+    public string? Total { get; set; }
+    public string? Limit { get; set; }
+    public string? Start { get; set; }
+    public List<T> Data { get; set; } = new List<T>();
+}
+
+/// <summary>
 /// JSON file implementation of IThingsToDoRepository using JSON data
 /// </summary>
 public class JsonThingsToDoRepository : IThingsToDoRepository
 {
     private readonly List<ParkThingToDo> _thingsToDo;
     private readonly string _dataPath;
+    private readonly ILogger<JsonThingsToDoRepository> _logger;
 
-    public JsonThingsToDoRepository(IWebHostEnvironment environment)
+    public JsonThingsToDoRepository(IWebHostEnvironment environment, ILogger<JsonThingsToDoRepository> logger)
     {
+        _logger = logger;
         _dataPath = Path.Combine(environment.ContentRootPath, "Data", "MockData", "park-things-to-do.json");
         _thingsToDo = LoadThingsToDoFromJson();
     }
@@ -102,7 +115,12 @@ public class JsonThingsToDoRepository : IThingsToDoRepository
         try
         {
             if (!File.Exists(_dataPath))
+            {
+                _logger.LogWarning("Park things to do JSON file not found at path: {FilePath}", _dataPath);
                 return new List<ParkThingToDo>();
+            }
+
+            _logger.LogInformation("Loading park things to do from JSON file: {FilePath}", _dataPath);
 
             var json = File.ReadAllText(_dataPath);
             var options = new JsonSerializerOptions
@@ -110,11 +128,27 @@ public class JsonThingsToDoRepository : IThingsToDoRepository
                 PropertyNameCaseInsensitive = true
             };
 
-            return JsonSerializer.Deserialize<List<ParkThingToDo>>(json, options) ?? new List<ParkThingToDo>();
+            // Try to deserialize as NPS API response format first
+            var npsResponse = JsonSerializer.Deserialize<NpsThingsToDoResponse<ParkThingToDo>>(json, options);
+            var thingsToDo = npsResponse?.Data ?? new List<ParkThingToDo>();
+
+            _logger.LogInformation("Successfully loaded {Count} park things to do from JSON", thingsToDo.Count);
+
+            return thingsToDo;
         }
-        catch
+        catch (JsonException jsonEx)
         {
-            // In a real app, you'd log this error
+            _logger.LogError(jsonEx, "Failed to deserialize park things to do JSON from {FilePath}. Invalid JSON format.", _dataPath);
+            return new List<ParkThingToDo>();
+        }
+        catch (IOException ioEx)
+        {
+            _logger.LogError(ioEx, "IO error while reading park things to do JSON from {FilePath}", _dataPath);
+            return new List<ParkThingToDo>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error loading park things to do from JSON file {FilePath}", _dataPath);
             return new List<ParkThingToDo>();
         }
     }
