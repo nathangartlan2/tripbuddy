@@ -1,6 +1,6 @@
 # TripBuddy Database Schema
 
-## Entity Relationship Diagram
+## Entity Relationship Diagram - Base Schema
 
 ```mermaid
 erDiagram
@@ -27,24 +27,6 @@ erDiagram
         TIMESTAMP updated_at
     }
 
-    activities {
-        SERIAL id PK
-        VARCHAR nps_activity_id UK
-        VARCHAR name
-        TEXT description
-        VARCHAR category
-        BOOLEAN is_active
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-
-    park_activities {
-        SERIAL id PK
-        INT park_id FK
-        INT activity_id FK
-        TIMESTAMP created_at
-    }
-
     park_things_to_do {
         SERIAL id PK
         INT park_id FK
@@ -59,59 +41,14 @@ erDiagram
         TEXT fee_info
         TEXT location_description
         TEXT url
-        BOOLEAN is_active
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
-    }
-
-    park_images {
-        SERIAL id PK
-        INT park_id FK
-        VARCHAR nps_asset_id
-        VARCHAR title
-        TEXT caption
-        TEXT alt_text
-        VARCHAR credit
-        TEXT url
-        VARCHAR image_type
-        INT file_size
-        INT width
-        INT height
-        BOOLEAN is_active
-        TIMESTAMP created_at
-    }
-
-    parks_documents {
-        SERIAL id PK
-        VARCHAR title
-        TEXT content
-        VARCHAR content_type
-        VARCHAR source_type
-        TEXT source_url
-        VARCHAR nps_source_id
         TSVECTOR search_vector
-        VARCHAR content_hash
-        JSONB metadata
-        DECIMAL relevance_score
         BOOLEAN is_active
         TIMESTAMP created_at
         TIMESTAMP updated_at
-    }
-
-    park_document_associations {
-        SERIAL id PK
-        INT park_id FK
-        INT document_id FK
-        TIMESTAMP created_at
     }
 
     %% Relationships
-    parks ||--o{ park_activities : "offers"
-    activities ||--o{ park_activities : "available_at"
     parks ||--o{ park_things_to_do : "has"
-    parks ||--o{ park_images : "has"
-    parks ||--o{ park_document_associations : "referenced_in"
-    parks_documents ||--o{ park_document_associations : "associated_with"
 
     %% External Reference (YAML Files)
     gear_yaml_files {
@@ -122,7 +59,7 @@ erDiagram
     }
 ```
 
-## Database Indexes
+## Database Indexes - Base Schema
 
 ### **Performance Indexes**
 
@@ -131,42 +68,16 @@ erDiagram
 - `idx_parks_nps_park_code` - B-tree index on `nps_park_code`
 - `idx_parks_state_code` - B-tree index on `state_code`
 - `idx_parks_location` - GIN full-text index on name, description, and location
-
-#### **Activities Table**
-
-- `idx_activities_nps_id` - B-tree index on `nps_activity_id`
-- `idx_activities_name` - B-tree index on `name`
-- `idx_activities_category` - B-tree index on `category`
-
-#### **Park Activities Table (Junction)**
-
-- `idx_park_activities_park_id` - B-tree index on `park_id` (FK)
-- `idx_park_activities_activity_id` - B-tree index on `activity_id` (FK)
+- `idx_parks_active` - B-tree index on `is_active`
 
 #### **Park Things To Do Table**
 
 - `idx_park_things_park_id` - B-tree index on `park_id` (FK)
 - `idx_park_things_season` - B-tree index on `season`
 - `idx_park_things_tags` - GIN index on `activity_tags` array
-
-#### **Park Images Table**
-
-- `idx_park_images_park_id` - B-tree index on `park_id` (FK)
-- `idx_park_images_type` - B-tree index on `image_type`
-
-#### **Parks Documents Table**
-
-- `idx_parks_documents_content_type` - B-tree index on `content_type`
-- `idx_parks_documents_source_type` - B-tree index on `source_type`
-- `idx_parks_documents_active` - B-tree index on `is_active`
-- `idx_parks_documents_search` - GIN index on `search_vector`
-- `idx_parks_documents_relevance` - B-tree index on `relevance_score`
-- `idx_parks_documents_hash` - B-tree index on `content_hash`
-
-#### **Park Document Associations Table (Junction)**
-
-- `idx_park_document_associations_park_id` - B-tree index on `park_id` (FK)
-- `idx_park_document_associations_document_id` - B-tree index on `document_id` (FK)
+- `idx_park_things_search_vector` - GIN index on `search_vector`
+- `idx_park_things_active` - B-tree index on `is_active`
+- `idx_park_things_duration` - B-tree index on `duration`
 
 ### **Full-Text Search Indexes**
 
@@ -184,60 +95,47 @@ idx_parks_full_text - GIN index on:
 
 #### **Things To Do Full-Text Search**
 
+Uses dedicated `search_vector` column with automatic trigger updates:
+
 ```sql
-idx_park_things_full_text - GIN index on:
-  to_tsvector('english',
+idx_park_things_search_vector - GIN index on search_vector column
+  (automatically populated via trigger with:
     title || ' ' ||
     COALESCE(short_description, '') || ' ' ||
     COALESCE(full_description, '') || ' ' ||
+    COALESCE(location_description, '') || ' ' ||
+    COALESCE(accessibility_info, '') || ' ' ||
     array_to_string(activity_tags, ' ')
-  )
-```
-
-#### **Documents Full-Text Search**
-
-```sql
-idx_parks_documents_full_text - GIN index on:
-  to_tsvector('english',
-    COALESCE(title, '') || ' ' ||
-    content
   )
 ```
 
 ### **Unique Constraints**
 
 - `parks(nps_park_code)` - Ensures unique NPS park codes
-- `activities(nps_activity_id)` - Ensures unique NPS activity IDs
-- `activities(name)` - Ensures unique activity names
-- `park_activities(park_id, activity_id)` - Prevents duplicate activity associations per park
 - `park_things_to_do(park_id, nps_thing_id)` - Prevents duplicate things to do per park
-- `park_images(park_id, nps_asset_id)` - Prevents duplicate images per park
-- `parks_documents(content_hash)` - Ensures unique document content globally
-- `park_document_associations(park_id, document_id)` - Prevents duplicate document associations per park
 
 ### **Triggers**
 
 #### **Search Vector Auto-Update**
 
 ```sql
-trigger_update_parks_documents_search_vector
-  - Automatically updates search_vector when parks_documents content changes
+trigger_update_park_things_search_vector
+  - Automatically updates search_vector when park_things_to_do content changes
   - Updates updated_at timestamp
   - Triggers on INSERT and UPDATE operations
 ```
 
-## Key Features
+## Key Features - Base Schema
 
 ### **Core Entities**
 
 - **parks**: Main park information with NPS API integration
-- **parks_documents**: RAG content for LLM context
+- **park_things_to_do**: Detailed activity descriptions with full-text search
 
 ### **NPS API Integration**
 
-- **park_activities**: Activities available at each park
-- **park_things_to_do**: Detailed activity descriptions
-- **park_images**: Multimedia content from NPS
+- **parks**: Core park data from NPS API
+- **park_things_to_do**: Activities and attractions from NPS thingstodo endpoint
 
 ### **External References**
 
@@ -248,20 +146,29 @@ trigger_update_parks_documents_search_vector
 
 ### **Search Capabilities**
 
-- **Full-text search** on parks and documents using PostgreSQL `tsvector`
-- **Keyword search** for RAG content retrieval
-- **Metadata** in JSONB for flexible queries
+- **Full-text search** on parks using PostgreSQL `tsvector`
+- **Dedicated search vector** on park_things_to_do with automatic updates
+- **Activity tag search** using array indexing
 
-### **Simplified Architecture**
+### **Simplified MVP Architecture**
 
-This schema focuses purely on:
+This base schema focuses on:
 
-1. **Park Data Storage** - Rich NPS API integration
-2. **Content Management** - RAG-optimized document storage
-3. **Search Performance** - Full-text search indexes
+1. **Park Data Storage** - Essential NPS API integration
+2. **Activity Search** - Full-text search on things to do
+3. **Performance** - Optimized indexes for core search functionality
 
 ### **Application Layer Responsibilities**
 
 - **Gear Recommendations**: Handled via YAML templates + stateless API
 - **User Sessions**: Managed in application memory or external cache
-- **Recommendation History**: Optional future enhancement
+- **Advanced Features**: Available via schema-extension1.sql when needed
+
+### **Extension Path**
+
+When ready for advanced features, run `schema-extension1.sql` to add:
+
+- Activities and park_activities tables
+- Park images and multimedia
+- RAG documents system
+- Enhanced search capabilities

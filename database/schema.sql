@@ -1,5 +1,6 @@
--- TripBuddy Database Schema
--- Enhanced schema to support NPS API data integration
+-- TripBuddy Database Schema - Base Version
+-- Simplified schema with core entities: parks and park_things_to_do
+-- For additional features, run schema-extension1.sql after this file
 
 -- Main parks table with enhanced NPS fields
 CREATE TABLE parks (
@@ -37,28 +38,6 @@ CREATE TABLE parks (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Activities that exist independently (hiking, rock climbing, etc.)
-CREATE TABLE activities (
-    id SERIAL PRIMARY KEY,
-    nps_activity_id VARCHAR(50) UNIQUE, -- NPS activity ID
-    name VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    category VARCHAR(100), -- e.g., 'outdoor recreation', 'water sports', 'winter activities'
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Junction table linking parks to activities (many-to-many relationship)
-CREATE TABLE park_activities (
-    id SERIAL PRIMARY KEY,
-    park_id INT REFERENCES parks(id) ON DELETE CASCADE,
-    activity_id INT REFERENCES activities(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(park_id, activity_id)
-);
-
 -- Things to do at each park (from NPS thingstodo endpoint)
 CREATE TABLE park_things_to_do (
     id SERIAL PRIMARY KEY,
@@ -74,6 +53,10 @@ CREATE TABLE park_things_to_do (
     fee_info TEXT,
     location_description TEXT,
     url TEXT, -- Link to more info
+    
+    -- Full-text search optimization
+    search_vector tsvector, -- Pre-computed search vector for performance
+    
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
@@ -81,102 +64,24 @@ CREATE TABLE park_things_to_do (
     UNIQUE(park_id, nps_thing_id)
 );
 
--- Park images and multimedia (from NPS multimedia endpoints)
-CREATE TABLE park_images (
-    id SERIAL PRIMARY KEY,
-    park_id INT REFERENCES parks(id) ON DELETE CASCADE,
-    nps_asset_id VARCHAR(50), -- NPS unique asset ID
-    title VARCHAR(255),
-    caption TEXT,
-    alt_text TEXT,
-    credit VARCHAR(255),
-    url TEXT NOT NULL,
-    
-    -- Image metadata
-    image_type VARCHAR(50), -- 'image', 'video', 'audio'
-    file_size INT, -- in bytes
-    width INT,
-    height INT,
-    
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(park_id, nps_asset_id)
-);
-
--- Park documents for full-text search and RAG
--- This table stores searchable content chunks that feed into the LLM for recommendations
-CREATE TABLE parks_documents (
-    id SERIAL PRIMARY KEY,
-    
-    -- Document content
-    title VARCHAR(255),
-    content TEXT NOT NULL, -- The actual searchable content
-    content_type VARCHAR(50) NOT NULL, -- 'description', 'activities', 'features', 'weather', 'directions', 'things_to_do', 'comparison'
-    
-    -- Source tracking
-    source_type VARCHAR(50), -- 'nps_api', 'manual', 'scraped'
-    source_url TEXT, -- Original source URL if applicable
-    nps_source_id VARCHAR(50), -- Reference to NPS API entity if applicable
-    
-    -- Search and RAG optimization
-    search_vector tsvector, -- PostgreSQL full-text search
-    content_hash VARCHAR(64) UNIQUE, -- MD5 hash to detect content changes
-    
-    -- Metadata for RAG context
-    metadata JSONB, -- Flexible storage for additional context (season, difficulty, activity relevance, etc.)
-    quality_score DECIMAL(3,2) DEFAULT 1.0, -- Editorial quality/source trust score (0.0-1.0)
-    
-    -- Content management
-    is_active BOOLEAN DEFAULT true, -- Allow disabling without deletion
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Junction table linking documents to parks (many-to-many relationship)
-CREATE TABLE park_document_associations (
-    id SERIAL PRIMARY KEY,
-    park_id INT REFERENCES parks(id) ON DELETE CASCADE,
-    document_id INT REFERENCES parks_documents(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(park_id, document_id)
-);
-
 -- Note: Gear templates, categories, and items are managed as YAML files
 -- This keeps the system simple and allows for easy manual editing
 -- YAML files are stored in: API/TripBuddy.API/Data/GearTemplates/
 
--- Indexes for performance
+-- Indexes for performance (Base Schema)
+-- Parks table indexes
 CREATE INDEX idx_parks_nps_park_code ON parks(nps_park_code);
 CREATE INDEX idx_parks_state_code ON parks(state_code);
 CREATE INDEX idx_parks_location ON parks USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(location, '')));
-CREATE INDEX idx_parks_features ON parks USING gin(features);
-CREATE INDEX idx_parks_activities ON parks USING gin(activities);
+CREATE INDEX idx_parks_active ON parks(is_active);
 
-CREATE INDEX idx_activities_nps_id ON activities(nps_activity_id);
-CREATE INDEX idx_activities_name ON activities(name);
-CREATE INDEX idx_activities_category ON activities(category);
-
-CREATE INDEX idx_park_activities_park_id ON park_activities(park_id);
-CREATE INDEX idx_park_activities_activity_id ON park_activities(activity_id);
-
+-- Park things to do indexes
 CREATE INDEX idx_park_things_park_id ON park_things_to_do(park_id);
 CREATE INDEX idx_park_things_season ON park_things_to_do(season);
 CREATE INDEX idx_park_things_tags ON park_things_to_do USING gin(activity_tags);
-
-CREATE INDEX idx_park_images_park_id ON park_images(park_id);
-CREATE INDEX idx_park_images_type ON park_images(image_type);
-
-CREATE INDEX idx_parks_documents_content_type ON parks_documents(content_type);
-CREATE INDEX idx_parks_documents_source_type ON parks_documents(source_type);
-CREATE INDEX idx_parks_documents_active ON parks_documents(is_active);
-CREATE INDEX idx_parks_documents_search ON parks_documents USING gin(search_vector);
-CREATE INDEX idx_parks_documents_quality ON parks_documents(quality_score);
-CREATE INDEX idx_parks_documents_hash ON parks_documents(content_hash);
-
-CREATE INDEX idx_park_document_associations_park_id ON park_document_associations(park_id);
-CREATE INDEX idx_park_document_associations_document_id ON park_document_associations(document_id);
+CREATE INDEX idx_park_things_search_vector ON park_things_to_do USING gin(search_vector);
+CREATE INDEX idx_park_things_active ON park_things_to_do(is_active);
+CREATE INDEX idx_park_things_duration ON park_things_to_do(duration);
 
 -- Full-text search setup for parks
 CREATE INDEX idx_parks_full_text ON parks USING gin(
@@ -184,44 +89,30 @@ CREATE INDEX idx_parks_full_text ON parks USING gin(
         name || ' ' || 
         COALESCE(description, '') || ' ' || 
         COALESCE(full_description, '') || ' ' ||
-        COALESCE(location, '') || ' ' ||
-        COALESCE(weather_info, '') || ' ' ||
-        array_to_string(features, ' ') || ' ' ||
-        array_to_string(activities, ' ')
+        COALESCE(location, '')
     )
 );
 
--- Full-text search for things to do
-CREATE INDEX idx_park_things_full_text ON park_things_to_do USING gin(
-    to_tsvector('english', 
-        title || ' ' || 
-        COALESCE(short_description, '') || ' ' || 
-        COALESCE(full_description, '') || ' ' ||
-        array_to_string(activity_tags, ' ')
-    )
-);
+-- Full-text search for park_things_to_do is handled by the dedicated search_vector column and trigger
 
--- Full-text search for parks documents (RAG content)
-CREATE INDEX idx_parks_documents_full_text ON parks_documents USING gin(
-    to_tsvector('english', 
-        COALESCE(title, '') || ' ' || 
-        content
-    )
-);
-
--- Trigger to automatically update search_vector when content changes
-CREATE OR REPLACE FUNCTION update_parks_documents_search_vector() 
+-- Trigger to automatically update search_vector for park_things_to_do when content changes
+CREATE OR REPLACE FUNCTION update_park_things_search_vector() 
 RETURNS trigger AS $$
 BEGIN
     NEW.search_vector := to_tsvector('english', 
-        COALESCE(NEW.title, '') || ' ' || NEW.content
+        NEW.title || ' ' || 
+        COALESCE(NEW.short_description, '') || ' ' || 
+        COALESCE(NEW.full_description, '') || ' ' ||
+        COALESCE(NEW.location_description, '') || ' ' ||
+        COALESCE(NEW.accessibility_info, '') || ' ' ||
+        array_to_string(NEW.activity_tags, ' ')
     );
     NEW.updated_at := NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_parks_documents_search_vector
-    BEFORE INSERT OR UPDATE ON parks_documents
+CREATE TRIGGER trigger_update_park_things_search_vector
+    BEFORE INSERT OR UPDATE ON park_things_to_do
     FOR EACH ROW
-    EXECUTE FUNCTION update_parks_documents_search_vector();
+    EXECUTE FUNCTION update_park_things_search_vector();
