@@ -98,9 +98,6 @@ You are an expert outdoor gear advisor. Based on the trip details, modify this b
 TRIP CONTEXT:
 - Destination: {parkName}
 - Season: {context.Season}
-- Duration: {context.Duration}
-- Experience Level: {context.ExperienceLevel}
-- Group Size: {context.GroupSize}
 - Trip Type: {context.TripType}
 
 BASE GEAR LIST:
