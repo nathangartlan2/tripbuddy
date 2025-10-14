@@ -8,31 +8,38 @@ namespace TripBuddy.API.Controllers
     [Route("api/[controller]")]
     public class GearController : ControllerBase
     {
-        private readonly IGearRecommendationService _gearService;
+        private readonly IGearRecommendationServiceFactory _serviceFactory;
         private readonly ILogger<GearController> _logger;
 
         public GearController(
-            IGearRecommendationService gearService,
+            IGearRecommendationServiceFactory serviceFactory,
             ILogger<GearController> logger)
         {
-            _gearService = gearService;
+            _serviceFactory = serviceFactory;
             _logger = logger;
         }
 
         /// <summary>
         /// Generate a custom gear list based on trip context
         /// </summary>
+        /// <param name="request">The gear list generation request</param>
+        /// <param name="useRAG">Whether to use RAG (Retrieval-Augmented Generation) service for enhanced recommendations</param>
         [HttpPost("recommendations")]
-        public async Task<ActionResult<GenerateGearListResponse>> GetGearRecommendations([FromBody] GenerateGearListRequest request)
+        public async Task<ActionResult<GenerateGearListResponse>> GetGearRecommendations(
+            [FromBody] GenerateGearListRequest request,
+            [FromQuery] bool useRAG = false)
         {
             try
             {
-                var response = await _gearService.GenerateCustomGearListAsync(request);
+                // Get the appropriate service from the factory
+                var gearService = _serviceFactory.GetService(useRAG);
+
+                var response = await gearService.GenerateCustomGearListAsync(request);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate gear recommendations");
+                _logger.LogError(ex, "Failed to generate gear recommendations.");
                 return StatusCode(500, new { error = "Failed to generate gear recommendations" });
             }
         }

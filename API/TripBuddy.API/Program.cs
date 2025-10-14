@@ -84,15 +84,24 @@ builder.Services.AddScoped<ITextGenerationService>(provider =>
 // Register application services with interfaces
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
-builder.Services.AddSingleton<IGearTemplateService, GearTemplateService>();
-builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
 builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
 
-// Register Parks services (Repository Pattern)
+// Register Parks services (Repository Pattern) - Dependencies for gear services
 builder.Services.AddScoped<IParkRepository, JsonParkRepository>();
 builder.Services.AddScoped<IThingsToDoRepository, JsonThingsToDoRepository>();
 builder.Services.AddScoped<IParkService, ParkService>();
 builder.Services.AddScoped<IParkThingsToDoService, ParkThingsToDoService>();
+
+// Register Gear Template Service - Dependency for gear recommendation services
+builder.Services.AddSingleton<IGearTemplateService, GearTemplateService>();
+
+// Register concrete gear recommendation services (depend on parks services and gear template service)
+builder.Services.AddScoped<GearRecommendationService>();
+builder.Services.AddScoped<BasicRAGGearRecommendationService>();
+
+// Register gear recommendation service factory and interface
+builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
+builder.Services.AddScoped<IGearRecommendationServiceFactory, GearRecommendationServiceFactory>();
 
 // Add logging
 builder.Logging.AddConsole();

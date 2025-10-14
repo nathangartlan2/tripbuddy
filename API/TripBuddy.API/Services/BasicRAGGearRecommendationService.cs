@@ -11,17 +11,20 @@ namespace TripBuddy.API.Services
         private readonly ITextGenerationService _textGenerationService;
         private readonly IGearTemplateService _gearTemplateService;
         private readonly IParkService _parkService;
+        private readonly IParkThingsToDoService _parkThingsToDoService;
         private readonly ILogger<BasicRAGGearRecommendationService> _logger;
 
         public BasicRAGGearRecommendationService(
             ITextGenerationService textGenerationService,
             IGearTemplateService gearTemplateService,
             IParkService parkService,
+            IParkThingsToDoService parkThingsToDoService,
             ILogger<BasicRAGGearRecommendationService> logger)
         {
             _textGenerationService = textGenerationService;
             _gearTemplateService = gearTemplateService;
             _parkService = parkService;
+            _parkThingsToDoService = parkThingsToDoService;
             _logger = logger;
         }
 
@@ -72,19 +75,62 @@ namespace TripBuddy.API.Services
                 )
             );
 
-            // Get park name from the park service
+            // Get park information
             string parkName = "Unknown Park";
-            if (!string.IsNullOrEmpty(context.ParkId) && int.TryParse(context.ParkId, out int parkId))
+            string parkInfo = "";
+            int parkId = 0; // Initialize parkId
+
+            if (!string.IsNullOrEmpty(context.ParkId) && int.TryParse(context.ParkId, out parkId))
             {
                 try
                 {
                     var park = await _parkService.GetParkByIdAsync(parkId);
-                    parkName = park?.Name ?? $"Park ID {context.ParkId}";
+                    if (park != null)
+                    {
+                        parkName = park.Name;
+                        parkInfo = $"Park Details: {park.Description ?? "No description available"}";
+                        if (!string.IsNullOrEmpty(park.Location))
+                            parkInfo += $"\nLocation: {park.Location}";
+                    }
+                    else
+                    {
+                        parkName = $"Park ID {context.ParkId}";
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to retrieve park name for ID {ParkId}", context.ParkId);
+                    _logger.LogWarning(ex, "Failed to retrieve park information for ID {ParkId}", context.ParkId);
                     parkName = $"Park ID {context.ParkId}";
+                }
+            }
+
+            // Get seasonal activities for this park
+            string seasonalActivities = "";
+            string primaryActivityDescription = "";
+            string primaryActivityTitle = "seasonal activities"; // default fallback
+            if (!string.IsNullOrEmpty(context.Season) && parkId > 0)
+            {
+                try
+                {
+                    var thingsToDo = await _parkThingsToDoService.GetThingsToDoBySeasonAsync(context.Season, parkId);
+                    var activitiesList = thingsToDo.Take(10).ToList(); // Limit to 10 activities
+
+                    if (activitiesList.Any())
+                    {
+                        // Get the primary (first/most relevant) activity with full description
+                        var primaryActivity = activitiesList.First();
+                        primaryActivityTitle = primaryActivity.Title; // Capture for use in prompt
+                        var activityDescription = primaryActivity.FullDescription ?? primaryActivity.ShortDescription ?? "No detailed description available";
+                        primaryActivityDescription = $"\nPrimary Seasonal Activity: {primaryActivity.Title}\nActivity Description: {activityDescription}";
+
+                        // List all activities for context
+                        var activityTitles = activitiesList.Select(t => t.Title).ToList();
+                        seasonalActivities = $"\nAll Seasonal Activities ({context.Season}): {string.Join(", ", activityTitles)}";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to retrieve seasonal activities for park {ParkId} and season {Season}", context.ParkId, context.Season);
                 }
             }
 
@@ -95,23 +141,26 @@ TRIP CONTEXT:
 - Destination: {parkName}
 - Season: {context.Season}
 - Trip Type: {context.TripType}
+{parkInfo}{primaryActivityDescription}{seasonalActivities}
 
 BASE GEAR LIST:
 {baseItemsList}
 
 INSTRUCTIONS:
-1. For each modification, provide a brief reason (1-2 sentences max)
-2. Focus on safety, weather conditions, and trip-specific needs
-3. Consider the user's experience level
+1. GROUND YOUR RECOMMENDATIONS in the primary seasonal activity: ""{primaryActivityTitle}""
+2. ALWAYS REFERENCE the primary seasonal activity by name in your reasoning for each modification
+3. For each modification, provide a brief reason (1-2 sentences max) that explicitly mentions how it relates to ""{primaryActivityTitle}""
+4. Focus on safety, weather conditions, and trip-specific needs for this specific activity
+5. Consider the user's experience level and the demands of ""{primaryActivityTitle}""
 
 FORMAT YOUR RESPONSE AS:
 KEEP: [list items to keep unchanged]
-ADD: [item name] - [brief reason]
-REMOVE: [item name] - [brief reason]
-UPGRADE: [original item] → [better item] - [brief reason]
+ADD: [item name] - [brief reason explicitly mentioning ""{primaryActivityTitle}""]
+REMOVE: [item name] - [brief reason explicitly mentioning ""{primaryActivityTitle}""]
+UPGRADE: [original item] → [better item] - [brief reason explicitly mentioning ""{primaryActivityTitle}""]
 
-SUMMARY: [2-3 sentence overview of key changes]
-WARNINGS: [any important safety or logistics alerts]
+SUMMARY: [2-3 sentence overview of key changes specifically for ""{primaryActivityTitle}""]
+WARNINGS: [any important safety or logistics alerts specific to ""{primaryActivityTitle}""]
 ";
         }
 
