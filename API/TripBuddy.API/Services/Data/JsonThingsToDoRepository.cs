@@ -1,59 +1,8 @@
 using System.Text.Json;
 using TripBuddy.API.Models.Database;
+using TripBuddy.API.Models.NPS;
 
 namespace TripBuddy.API.Services.Data;
-
-/// <summary>
-/// Wrapper class for NPS API response format
-/// </summary>
-internal class NpsThingsToDoResponse<T>
-{
-    public string? Total { get; set; }
-    public string? Limit { get; set; }
-    public string? Start { get; set; }
-    public List<T> Data { get; set; } = new List<T>();
-}
-
-/// <summary>
-/// Model for NPS things to do data format
-/// </summary>
-internal class NpsThingToDoData
-{
-    public string Id { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string ShortDescription { get; set; } = string.Empty;
-    public string? LongDescription { get; set; }
-    public string? Duration { get; set; }
-    public List<string>? Tags { get; set; }
-    public string? SeasonDescription { get; set; }
-    public List<NpsThingToDoImage>? Images { get; set; }
-    public string? AccessibilityInformation { get; set; }
-    public List<NpsThingToDoFee>? Fees { get; set; }
-    public string? Location { get; set; }
-    public List<NpsRelatedParkInfo>? RelatedParks { get; set; }
-}
-
-internal class NpsThingToDoImage
-{
-    public string Url { get; set; } = string.Empty;
-    public string Credit { get; set; } = string.Empty;
-    public string AltText { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-}
-
-internal class NpsThingToDoFee
-{
-    public string Cost { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-}
-
-internal class NpsRelatedParkInfo
-{
-    public string ParkCode { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-}
 
 /// <summary>
 /// JSON file implementation of IThingsToDoRepository using JSON data
@@ -170,7 +119,7 @@ public class JsonThingsToDoRepository : IThingsToDoRepository
             };
 
             // Deserialize as NPS API response format first
-            var npsResponse = JsonSerializer.Deserialize<NpsThingsToDoResponse<NpsThingToDoData>>(json, options);
+            var npsResponse = JsonSerializer.Deserialize<NpsApiResponse<NpsThingToDoData>>(json, options);
             var npsThingsToDo = npsResponse?.Data ?? new List<NpsThingToDoData>();
 
             // Map NPS data to internal ParkThingToDo model
