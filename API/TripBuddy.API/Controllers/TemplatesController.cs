@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using TripBuddy.API.Models;
 using TripBuddy.API.Services;
 
 namespace TripBuddy.API.Controllers
@@ -8,14 +7,14 @@ namespace TripBuddy.API.Controllers
     [Route("api/[controller]")]
     public class TemplatesController : ControllerBase
     {
-        private readonly ISessionService _sessionService;
+        private readonly IGearTemplateService _gearTemplateService;
         private readonly ILogger<TemplatesController> _logger;
 
         public TemplatesController(
-            ISessionService sessionService,
+            IGearTemplateService gearTemplateService,
             ILogger<TemplatesController> logger)
         {
-            _sessionService = sessionService;
+            _gearTemplateService = gearTemplateService;
             _logger = logger;
         }
 

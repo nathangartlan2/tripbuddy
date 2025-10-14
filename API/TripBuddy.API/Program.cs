@@ -84,7 +84,6 @@ builder.Services.AddScoped<ITextGenerationService>(provider =>
 // Register application services with interfaces
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
-builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddSingleton<IGearTemplateService, GearTemplateService>();
 builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
 builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
