@@ -109,6 +109,7 @@ builder.Services.AddScoped<LlamaApiService>();
 builder.Services.AddScoped<IParkRepository, JsonParkRepository>();
 builder.Services.AddScoped<IThingsToDoRepository, JsonThingsToDoRepository>();
 builder.Services.AddScoped<IParkService, ParkService>();
+builder.Services.AddScoped<IParkThingsToDoService, ParkThingsToDoService>();
 
 // Add logging
 builder.Logging.AddConsole();
