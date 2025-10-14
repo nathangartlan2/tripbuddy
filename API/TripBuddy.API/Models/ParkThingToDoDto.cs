@@ -5,7 +5,7 @@ namespace TripBuddy.API.Models;
 /// <summary>
 /// API response model for park activities and things to do
 /// </summary>
-public class ParkThingToDoDto
+public class ParkThingToDoDto : ISearchResponsePreview
 {
     public int Id { get; set; }
     public int ParkId { get; set; }
@@ -42,6 +42,36 @@ public class ParkThingToDoDto
 
     // Metadata
     public bool IsActive { get; set; } = true;
+
+    // ISearchResponsePreview implementation
+    [JsonIgnore]
+    public SearchResultType Type => SearchResultType.ParkThingToDo;
+
+    [JsonIgnore]
+    string ISearchResponsePreview.Title => Title; // Use explicit interface implementation since Title already exists
+
+    [JsonIgnore]
+    public string PreviewText
+    {
+        get
+        {
+            var preview = ShortDescription ?? FullDescription ?? "Park activity";
+
+            // Add season and duration info if available
+            var additionalInfo = new List<string>();
+            if (!string.IsNullOrEmpty(Season))
+                additionalInfo.Add($"Season: {Season}");
+            if (!string.IsNullOrEmpty(Duration))
+                additionalInfo.Add($"Duration: {Duration}");
+
+            if (additionalInfo.Any())
+            {
+                preview += $" ({string.Join(", ", additionalInfo)})";
+            }
+
+            return preview;
+        }
+    }
 
     // Optional parent park info (for standalone activity responses)
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

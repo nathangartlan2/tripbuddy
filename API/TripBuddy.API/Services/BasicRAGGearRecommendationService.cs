@@ -35,8 +35,19 @@ namespace TripBuddy.API.Services
                 // Get base gear template
                 var baseTemplate = _gearTemplateService.GetTemplateByTripType(request.TripContext.TripType);
 
+                // Fetch park and activities data using helpers
+                ParkDto? park = await GetParkFromContextAsync(request.TripContext);
+                var relatedItems = new List<ISearchResponsePreview>();
+                if (park != null)
+                {
+                    relatedItems.Add(park);
+                }
+
+                List<ParkThingToDoDto>? parkActivities = await GetParkThingsToDoFromContextAsync(request.TripContext);
+                relatedItems = relatedItems.Concat(parkActivities).ToList();
+
                 // Create AI prompt to modify gear list
-                var prompt = await BuildGearModificationPrompt(baseTemplate, request.TripContext);
+                var prompt = BuildGearModificationPrompt(baseTemplate, request.TripContext, park, parkActivities);
 
                 // Get AI recommendations
                 var aiResponse = await _textGenerationService.GenerateResponseAsync(prompt);
@@ -48,7 +59,8 @@ namespace TripBuddy.API.Services
                 {
                     GearList = modifiedGearList,
                     Summary = ExtractSummary(aiResponse),
-                    Warnings = ExtractWarnings(aiResponse)
+                    Warnings = ExtractWarnings(aiResponse),
+                    RelatedItems = relatedItems.Any() ? relatedItems : null
                 };
             }
             catch (Exception ex)
@@ -67,7 +79,46 @@ namespace TripBuddy.API.Services
             }
         }
 
-        private async Task<string> BuildGearModificationPrompt(BaseGearTemplate baseTemplate, TripContext context)
+        // Helper to get ParkDto from TripContext
+        private async Task<ParkDto?> GetParkFromContextAsync(TripContext context)
+        {
+            if (!string.IsNullOrEmpty(context.ParkId) && int.TryParse(context.ParkId, out int parkId))
+            {
+                try
+                {
+                    return await _parkService.GetParkByIdAsync(parkId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to retrieve park information for ID {ParkId}", context.ParkId);
+                }
+            }
+            return null;
+        }
+
+        // Helper to get ParkThingToDoDto list from TripContext
+        private async Task<List<ParkThingToDoDto>?> GetParkThingsToDoFromContextAsync(TripContext context)
+        {
+            if (!string.IsNullOrEmpty(context.ParkId) && int.TryParse(context.ParkId, out int parkId) && !string.IsNullOrEmpty(context.Season))
+            {
+                try
+                {
+                    var thingsToDo = await _parkThingsToDoService.GetThingsToDoBySeasonAsync(context.Season, parkId);
+                    return thingsToDo.Take(10).ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to retrieve seasonal activities for park {ParkId} and season {Season}", context.ParkId, context.Season);
+                }
+            }
+            return null;
+        }
+
+        private string BuildGearModificationPrompt(
+            BaseGearTemplate baseTemplate,
+            TripContext context,
+            ParkDto? park = null,
+            List<ParkThingToDoDto>? parkActivities = null)
         {
             var baseItemsList = string.Join("\n",
                 baseTemplate.Categories.SelectMany(c =>
@@ -75,63 +126,33 @@ namespace TripBuddy.API.Services
                 )
             );
 
-            // Get park information
-            string parkName = "Unknown Park";
+            // Set park information
+            string parkName = park?.Name ?? "Unknown Park";
             string parkInfo = "";
-            int parkId = 0; // Initialize parkId
 
-            if (!string.IsNullOrEmpty(context.ParkId) && int.TryParse(context.ParkId, out parkId))
+            if (park != null)
             {
-                try
-                {
-                    var park = await _parkService.GetParkByIdAsync(parkId);
-                    if (park != null)
-                    {
-                        parkName = park.Name;
-                        parkInfo = $"Park Details: {park.Description ?? "No description available"}";
-                        if (!string.IsNullOrEmpty(park.Location))
-                            parkInfo += $"\nLocation: {park.Location}";
-                    }
-                    else
-                    {
-                        parkName = $"Park ID {context.ParkId}";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to retrieve park information for ID {ParkId}", context.ParkId);
-                    parkName = $"Park ID {context.ParkId}";
-                }
+                parkInfo = $"Park Details: {park.Description ?? "No description available"}";
+                if (!string.IsNullOrEmpty(park.Location))
+                    parkInfo += $"\nLocation: {park.Location}";
             }
 
-            // Get seasonal activities for this park
+            // Set seasonal activities information
             string seasonalActivities = "";
             string primaryActivityDescription = "";
             string primaryActivityTitle = "seasonal activities"; // default fallback
-            if (!string.IsNullOrEmpty(context.Season) && parkId > 0)
+
+            if (parkActivities?.Any() == true)
             {
-                try
-                {
-                    var thingsToDo = await _parkThingsToDoService.GetThingsToDoBySeasonAsync(context.Season, parkId);
-                    var activitiesList = thingsToDo.Take(10).ToList(); // Limit to 10 activities
+                // Get the primary (first/most relevant) activity with full description
+                var primaryActivity = parkActivities.First();
+                primaryActivityTitle = primaryActivity.Title; // Capture for use in prompt
+                var activityDescription = primaryActivity.FullDescription ?? primaryActivity.ShortDescription ?? "No detailed description available";
+                primaryActivityDescription = $"\nPrimary Seasonal Activity: {primaryActivity.Title}\nActivity Description: {activityDescription}";
 
-                    if (activitiesList.Any())
-                    {
-                        // Get the primary (first/most relevant) activity with full description
-                        var primaryActivity = activitiesList.First();
-                        primaryActivityTitle = primaryActivity.Title; // Capture for use in prompt
-                        var activityDescription = primaryActivity.FullDescription ?? primaryActivity.ShortDescription ?? "No detailed description available";
-                        primaryActivityDescription = $"\nPrimary Seasonal Activity: {primaryActivity.Title}\nActivity Description: {activityDescription}";
-
-                        // List all activities for context
-                        var activityTitles = activitiesList.Select(t => t.Title).ToList();
-                        seasonalActivities = $"\nAll Seasonal Activities ({context.Season}): {string.Join(", ", activityTitles)}";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to retrieve seasonal activities for park {ParkId} and season {Season}", context.ParkId, context.Season);
-                }
+                // List all activities for context
+                var activityTitles = parkActivities.Select(t => t.Title).ToList();
+                seasonalActivities = $"\nAll Seasonal Activities ({context.Season}): {string.Join(", ", activityTitles)}";
             }
 
             return $@"
@@ -148,10 +169,10 @@ BASE GEAR LIST:
 
 INSTRUCTIONS:
 1. GROUND YOUR RECOMMENDATIONS in the primary seasonal activity: ""{primaryActivityTitle}""
-2. ALWAYS REFERENCE the primary seasonal activity by name in your reasoning for each modification
-3. For each modification, provide a brief reason (1-2 sentences max) that explicitly mentions how it relates to ""{primaryActivityTitle}""
-4. Focus on safety, weather conditions, and trip-specific needs for this specific activity
-5. Consider the user's experience level and the demands of ""{primaryActivityTitle}""
+2. DO NOT MAKE A RECOMMENDATION if it is not related to the primary seasonal activity: ""{primaryActivityTitle}""
+3. ALWAYS REFERENCE the primary seasonal activity by name in your reasoning for each modification
+4. For each modification, provide a brief reason (1-2 sentences max) that explicitly mentions how it relates to ""{primaryActivityTitle}""
+5. Focus on safety, weather conditions, and trip-specific needs for this specific activity
 
 FORMAT YOUR RESPONSE AS:
 KEEP: [list items to keep unchanged]

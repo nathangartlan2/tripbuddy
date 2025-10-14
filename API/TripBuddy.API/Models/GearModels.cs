@@ -49,6 +49,7 @@ namespace TripBuddy.API.Models
         public GearList GearList { get; set; } = new();
         public string Summary { get; set; } = string.Empty; // Brief AI explanation of key changes
         public List<string> Warnings { get; set; } = new(); // Important safety/logistics notes
+        public List<ISearchResponsePreview>? RelatedItems { get; set; } // Optional related search results (parks, activities, etc.)
     }
 
     // Base gear templates

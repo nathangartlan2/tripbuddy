@@ -5,7 +5,7 @@ namespace TripBuddy.API.Models;
 /// <summary>
 /// API response model for park information
 /// </summary>
-public class ParkDto
+public class ParkDto : ISearchResponsePreview
 {
     public int Id { get; set; }
 
@@ -41,6 +41,16 @@ public class ParkDto
 
     // Metadata (excluding internal timestamps)
     public bool IsActive { get; set; } = true;
+
+    // ISearchResponsePreview implementation
+    [JsonIgnore]
+    public SearchResultType Type => SearchResultType.Park;
+
+    [JsonIgnore]
+    public string Title => Name;
+
+    [JsonIgnore]
+    public string PreviewText => Description ?? FullDescription ?? "National park destination";
 
     // Related data (optional, can be included via query parameters)
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
