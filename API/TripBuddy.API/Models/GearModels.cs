@@ -6,7 +6,7 @@ namespace TripBuddy.API.Models
 
     public class TripContext
     {
-        public string Destination { get; set; } = string.Empty;
+        public string ParkId { get; set; } = string.Empty; // References Parks.Id field
         public string Season { get; set; } = string.Empty;
         public string Duration { get; set; } = string.Empty; // "1 day", "3 days", "1 week"
         public string ExperienceLevel { get; set; } = string.Empty;

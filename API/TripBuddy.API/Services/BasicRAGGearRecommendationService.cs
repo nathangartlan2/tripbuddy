@@ -5,23 +5,23 @@ using TripBuddy.API.Services.Business;
 
 namespace TripBuddy.API.Services
 {
-    public interface IGearRecommendationService
+    public interface IBasicRAGGearRecommendationService
     {
         Task<GenerateGearListResponse> GenerateCustomGearListAsync(GenerateGearListRequest request);
     }
 
-    public class GearRecommendationService : IGearRecommendationService
+    public class BasicRAGGearRecommendationService : IBasicRAGGearRecommendationService
     {
         private readonly ITextGenerationService _textGenerationService;
         private readonly IGearTemplateService _gearTemplateService;
         private readonly IParkService _parkService;
-        private readonly ILogger<GearRecommendationService> _logger;
+        private readonly ILogger<BasicRAGGearRecommendationService> _logger;
 
-        public GearRecommendationService(
+        public BasicRAGGearRecommendationService(
             ITextGenerationService textGenerationService,
             IGearTemplateService gearTemplateService,
             IParkService parkService,
-            ILogger<GearRecommendationService> logger)
+            ILogger<BasicRAGGearRecommendationService> logger)
         {
             _textGenerationService = textGenerationService;
             _gearTemplateService = gearTemplateService;
