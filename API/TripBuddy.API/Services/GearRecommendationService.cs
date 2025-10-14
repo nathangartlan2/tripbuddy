@@ -5,11 +5,6 @@ using TripBuddy.API.Services.Business;
 
 namespace TripBuddy.API.Services
 {
-    public interface IGearRecommendationService
-    {
-        Task<GenerateGearListResponse> GenerateCustomGearListAsync(GenerateGearListRequest request);
-    }
-
     public class GearRecommendationService : IGearRecommendationService
     {
         private readonly ITextGenerationService _textGenerationService;
