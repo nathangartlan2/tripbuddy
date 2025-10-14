@@ -139,54 +139,6 @@ public class ParksController : ControllerBase
     }
 
     /// <summary>
-    /// Get activities for a specific park
-    /// </summary>
-    /// <param name="id">Park ID</param>
-    /// <returns>List of activities for the specified park</returns>
-    [HttpGet("{id:int}/activities")]
-    public async Task<ActionResult<IEnumerable<ParkThingToDoDto>>> GetParkActivities(int id)
-    {
-        try
-        {
-            var activities = await _parkService.GetParkActivitiesAsync(id);
-            return Ok(activities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving activities for park {ParkId}", id);
-            return StatusCode(500, "An error occurred while retrieving park activities");
-        }
-    }
-
-    /// <summary>
-    /// Search activities across all parks or within a specific park
-    /// </summary>
-    /// <param name="q">Search query</param>
-    /// <param name="parkId">Optional park ID to limit search scope</param>
-    /// <returns>List of matching activities</returns>
-    [HttpGet("activities/search")]
-    public async Task<ActionResult<IEnumerable<ParkThingToDoDto>>> SearchActivities(
-        [FromQuery] string q,
-        [FromQuery] int? parkId = null)
-    {
-        if (string.IsNullOrWhiteSpace(q))
-        {
-            return BadRequest("Search query cannot be empty");
-        }
-
-        try
-        {
-            var activities = await _parkService.SearchActivitiesAsync(q, parkId);
-            return Ok(activities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching activities with query {Query} and parkId {ParkId}", q, parkId);
-            return StatusCode(500, "An error occurred while searching activities");
-        }
-    }
-
-    /// <summary>
     /// Create a new park
     /// </summary>
     /// <param name="parkDto">Park data</param>

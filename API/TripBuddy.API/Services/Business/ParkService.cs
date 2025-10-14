@@ -12,30 +12,14 @@ namespace TripBuddy.API.Services.Business;
 public class ParkService : IParkService
 {
     private readonly IParkRepository _parkRepository;
-    private readonly IThingsToDoRepository _thingsToDoRepository;
-
-    public ParkService(IParkRepository parkRepository, IThingsToDoRepository thingsToDoRepository)
+    public ParkService(IParkRepository parkRepository)
     {
         _parkRepository = parkRepository;
-        _thingsToDoRepository = thingsToDoRepository;
     }
 
     public async Task<IEnumerable<ParkDto>> GetAllParksAsync(bool includeThingsToDo = false)
     {
         var parks = await _parkRepository.GetAllAsync();
-
-        if (includeThingsToDo)
-        {
-            var parksWithActivities = new List<ParkDto>();
-            foreach (var park in parks)
-            {
-                var activities = await _thingsToDoRepository.GetByParkIdAsync(park.Id);
-                var parkEntity = park;
-                parkEntity.ThingsToDo = activities.ToList();
-                parksWithActivities.Add(parkEntity.ToDto(includeThingsToDo: true));
-            }
-            return parksWithActivities;
-        }
 
         return parks.ToDtoList();
     }
@@ -46,12 +30,6 @@ public class ParkService : IParkService
         if (park == null)
             return null;
 
-        if (includeThingsToDo)
-        {
-            var activities = await _thingsToDoRepository.GetByParkIdAsync(id);
-            park.ThingsToDo = activities.ToList();
-        }
-
         return park.ToDto(includeThingsToDo);
     }
 
@@ -60,12 +38,6 @@ public class ParkService : IParkService
         var park = await _parkRepository.GetByNpsCodeAsync(npsCode);
         if (park == null)
             return null;
-
-        if (includeThingsToDo)
-        {
-            var activities = await _thingsToDoRepository.GetByParkIdAsync(park.Id);
-            park.ThingsToDo = activities.ToList();
-        }
 
         return park.ToDto(includeThingsToDo);
     }
@@ -80,24 +52,6 @@ public class ParkService : IParkService
     {
         var parks = await _parkRepository.SearchAsync(searchTerm);
         return parks.ToDtoList();
-    }
-
-    public async Task<IEnumerable<ParkThingToDoDto>> GetParkActivitiesAsync(int parkId)
-    {
-        var activities = await _thingsToDoRepository.GetByParkIdAsync(parkId);
-        return activities.ToDtoList();
-    }
-
-    public async Task<IEnumerable<ParkThingToDoDto>> SearchActivitiesAsync(string searchTerm, int? parkId = null)
-    {
-        var activities = await _thingsToDoRepository.SearchAsync(searchTerm);
-
-        if (parkId.HasValue)
-        {
-            activities = activities.Where(a => a.ParkId == parkId.Value);
-        }
-
-        return activities.ToDtoList();
     }
 
     public async Task<ParkDto> CreateParkAsync(ParkDto parkDto)

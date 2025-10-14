@@ -86,7 +86,4 @@ public class Park
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    // Navigation properties
-    public virtual ICollection<ParkThingToDo> ThingsToDo { get; set; } = new List<ParkThingToDo>();
 }

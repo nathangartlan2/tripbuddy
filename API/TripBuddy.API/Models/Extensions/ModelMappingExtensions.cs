@@ -34,11 +34,6 @@ public static class ModelMappingExtensions
             IsActive = park.IsActive
         };
 
-        if (includeThingsToDo && park.ThingsToDo?.Any() == true)
-        {
-            dto.ThingsToDo = park.ThingsToDo.Select(t => t.ToDto()).ToList();
-        }
-
         return dto;
     }
 
