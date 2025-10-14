@@ -75,35 +75,19 @@ builder.Services.AddSingleton<EmbeddingClient>(provider =>
     return client.GetEmbeddingClient(openAIConfig.EmbeddingModel); // Configurable model
 });
 
-// Register Text Generation Service based on configuration
+// Register Text Generation Service (only OpenAI supported)
 builder.Services.AddScoped<ITextGenerationService>(provider =>
 {
-    var textGenConfig = provider.GetRequiredService<IOptions<TextGenerationConfiguration>>().Value;
-
-    if (textGenConfig.Provider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase))
-    {
-        return provider.GetRequiredService<OpenAIService>();
-    }
-    else if (textGenConfig.Provider.Equals("Llama", StringComparison.OrdinalIgnoreCase))
-    {
-        return provider.GetRequiredService<LlamaApiService>();
-    }
-    else
-    {
-        // Default to OpenAI
-        return provider.GetRequiredService<OpenAIService>();
-    }
+    return provider.GetRequiredService<OpenAIService>();
 });
 
 // Register application services with interfaces
-builder.Services.AddHttpClient<LlamaApiService>();
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddSingleton<IGearTemplateService, GearTemplateService>();
 builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
 builder.Services.AddScoped<OpenAIService>(); // Still register concrete class for text generation factory
-builder.Services.AddScoped<LlamaApiService>();
 
 // Register Parks services (Repository Pattern)
 builder.Services.AddScoped<IParkRepository, JsonParkRepository>();
@@ -133,8 +117,6 @@ var availableTemplates = gearTemplateService.GetAllTemplates();
 logger.LogInformation("📋 Loaded {Count} gear templates: {Templates}",
     availableTemplates.Count(),
     string.Join(", ", availableTemplates.Select(t => t.TripType)));
-logger.LogInformation("   LLAMA API URL: {Url}", textGenConfig.Llama.ApiUrl);
-logger.LogInformation("   LLAMA Model: {Model}", textGenConfig.Llama.Model);
 
 // Parks services registered (logging after first successful request)
 logger.LogInformation("🏞️  Parks services registered successfully");

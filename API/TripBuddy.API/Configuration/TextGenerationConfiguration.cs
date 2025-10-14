@@ -9,14 +9,7 @@ namespace TripBuddy.API.Configuration
 
     public class TextGenerationConfiguration
     {
-        public string Provider { get; set; } = "OpenAI"; // "OpenAI" or "Llama"
+        public string Provider { get; set; } = "OpenAI"; // Only OpenAI supported
         public OpenAIConfiguration OpenAI { get; set; } = new();
-        public LlamaConfiguration Llama { get; set; } = new();
-    }
-
-    public class LlamaConfiguration
-    {
-        public string ApiUrl { get; set; } = "http://localhost:11434/api/generate";
-        public string Model { get; set; } = "llama2";
     }
 }
