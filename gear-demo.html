@@ -217,6 +217,13 @@
           />
         </div>
 
+        <div class="form-group">
+          <label for="useRAG">
+            <input type="checkbox" id="useRAG" name="useRAG" />
+            Use AI RAG (contextual recommendations)
+          </label>
+        </div>
+
         <button type="submit" id="submitBtn">
           Get AI Gear Recommendations
         </button>
@@ -239,13 +246,14 @@
           // Get form data
           const formData = new FormData(e.target);
           const tripContext = {
-            destination: formData.get("destination"),
+            ParkId: formData.get("destination"),
             season: formData.get("season"),
             duration: formData.get("duration"),
             tripType: formData.get("tripType"),
             experienceLevel: formData.get("experienceLevel"),
             groupSize: parseInt(formData.get("groupSize")),
           };
+          const useRAG = formData.get("useRAG") === "on";
 
           // Show loading state
           submitBtn.textContent = "Generating recommendations...";
@@ -255,13 +263,16 @@
             '<div class="loading">🤖 AI is analyzing your trip and customizing gear recommendations...</div>';
 
           try {
-            const response = await fetch(`${API_BASE}/recommendations`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ tripContext }),
-            });
+            const response = await fetch(
+              `${API_BASE}/recommendations?useRAG=${useRAG}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ tripContext }),
+              }
+            );
 
             if (!response.ok) {
               throw new Error(
