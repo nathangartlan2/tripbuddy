@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Options;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
-using TripBuddy.API.Configuration;
 using TripBuddy.API.Models;
 
 namespace TripBuddy.API.Services
@@ -15,14 +13,12 @@ namespace TripBuddy.API.Services
     {
         private readonly ChatClient _chatClient;
         private readonly EmbeddingClient _embeddingClient;
-        private readonly OpenAIConfiguration _config;
         private readonly ILogger<OpenAIService> _logger;
 
-        public OpenAIService(ChatClient chatClient, EmbeddingClient embeddingClient, IOptions<OpenAIConfiguration> config, ILogger<OpenAIService> logger)
+        public OpenAIService(ChatClient chatClient, EmbeddingClient embeddingClient, ILogger<OpenAIService> logger)
         {
             _chatClient = chatClient;
             _embeddingClient = embeddingClient;
-            _config = config.Value;
             _logger = logger;
         }
 

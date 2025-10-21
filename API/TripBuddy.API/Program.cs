@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
@@ -37,46 +36,19 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Options
-builder.Services.Configure<OpenAIConfiguration>(builder.Configuration.GetSection("OpenAI"));
-builder.Services.Configure<TextGenerationConfiguration>(builder.Configuration.GetSection("TextGeneration"));
+// Add logging early for OpenAI configuration
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
-// Get configuration for validation
-var openAIConfig = builder.Configuration.GetSection("OpenAI").Get<OpenAIConfiguration>() ?? new OpenAIConfiguration();
-var textGenConfig = builder.Configuration.GetSection("TextGeneration").Get<TextGenerationConfiguration>() ?? new TextGenerationConfiguration();
+// Create a temporary logger for configuration
+using var loggerFactory = LoggerFactory.Create(loggingBuilder => loggingBuilder.AddConsole());
+var configLogger = loggerFactory.CreateLogger<Program>();
 
-// Validate OpenAI API Key
-if (string.IsNullOrEmpty(openAIConfig.ApiKey))
-{
-    Console.WriteLine("⚠️  WARNING: OpenAI API Key not configured!");
-    Console.WriteLine("📚 See SECRETS_GUIDE.md for setup instructions");
-    Console.WriteLine("🔧 Quick setup: dotnet user-secrets set \"OpenAI:ApiKey\" \"your-key-here\"");
-}
+// Configure OpenAI clients with logging
+builder.Services.AddOpenAIClients(builder.Configuration, configLogger);
 
-// Configure OpenAI Chat Client
-builder.Services.AddSingleton<ChatClient>(provider =>
-{
-    if (string.IsNullOrEmpty(openAIConfig.ApiKey))
-    {
-        throw new InvalidOperationException("OpenAI API Key is required. Please configure it using User Secrets, Environment Variables, or appsettings.Development.json. See SECRETS_GUIDE.md for details.");
-    }
-    var client = new OpenAIClient(openAIConfig.ApiKey);
-    return client.GetChatClient(openAIConfig.ChatModel); // Configurable model
-});
-
-// Configure OpenAI Embedding Client
-builder.Services.AddSingleton<EmbeddingClient>(provider =>
-{
-    if (string.IsNullOrEmpty(openAIConfig.ApiKey))
-    {
-        throw new InvalidOperationException("OpenAI API Key is required. Please configure it using User Secrets, Environment Variables, or appsettings.Development.json. See SECRETS_GUIDE.md for details.");
-    }
-    var client = new OpenAIClient(openAIConfig.ApiKey);
-    return client.GetEmbeddingClient(openAIConfig.EmbeddingModel); // Configurable model
-});
-
-// Register Text Generation Service (only OpenAI supported)
 builder.Services.AddScoped<ITextGenerationService>(provider =>
+// Register Text Generation Service (only OpenAI supported)
 {
     return provider.GetRequiredService<OpenAIService>();
 });
@@ -103,21 +75,11 @@ builder.Services.AddScoped<BasicRAGGearRecommendationService>();
 builder.Services.AddScoped<IGearRecommendationService, GearRecommendationService>();
 builder.Services.AddScoped<IGearRecommendationServiceFactory, GearRecommendationServiceFactory>();
 
-// Add logging
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-
 var app = builder.Build();
 
 // Log configuration status
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("🚀 TripBuddy API Starting...");
-logger.LogInformation("📊 Configuration Status:");
-logger.LogInformation("   OpenAI API Key: {Status}",
-    string.IsNullOrEmpty(openAIConfig.ApiKey) ? "❌ NOT CONFIGURED" : "✅ Configured");
-logger.LogInformation("   OpenAI Chat Model: {Model}", openAIConfig.ChatModel);
-logger.LogInformation("   OpenAI Embedding Model: {Model}", openAIConfig.EmbeddingModel);
-logger.LogInformation("   Text Generation Provider: {Provider}", textGenConfig.Provider);
 
 // Initialize gear templates at startup
 var gearTemplateService = app.Services.GetRequiredService<IGearTemplateService>();
@@ -131,11 +93,7 @@ logger.LogInformation("🏞️  Parks services registered successfully");
 logger.LogInformation("   Repository: JSON-based data access");
 logger.LogInformation("   Endpoints: /api/parks available");
 
-if (string.IsNullOrEmpty(openAIConfig.ApiKey))
-{
-    logger.LogWarning("⚠️  OpenAI API Key missing! Vector search will fail.");
-    logger.LogWarning("📚 See SECRETS_GUIDE.md for configuration options");
-}// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
